@@ -16,18 +16,21 @@ def scan(timeout):
     click.echo("Scanning for BLE devices...")
 
     async def _scan():
-        devices = await BleakScanner.discover(timeout=timeout)
-        if not devices:
-            click.echo("No devices found.")
-            return
+        try:
+            devices = await BleakScanner.discover(timeout=timeout)
+            if not devices:
+                click.echo("No devices found.")
+                return
 
-        for device in devices:
-            click.echo(
-                f"Name: {device.name or 'Unknown'}, Address: {device.address}, RSSI: {device.rssi}"
-            )
-            if device.metadata:
-                click.echo(f"  Metadata: {device.metadata}")
-            click.echo("---")
+            for device in devices:
+                click.echo(
+                    f"Name: {device.name or 'Unknown'}, Address: {device.address}, RSSI: {device.rssi}"
+                )
+                if device.metadata:
+                    click.echo(f"  Metadata: {device.metadata}")
+                click.echo("---")
+        except Exception as e:
+            click.echo(f"Error during scan: {e}")
 
     asyncio.run(_scan())
 
