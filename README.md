@@ -1,6 +1,6 @@
 # grillgauge
 
-A CLI tool for grillgauge
+A CLI tool for monitoring BLE meat probes and exposing metrics to Prometheus.
 
 ## Installation
 
@@ -19,8 +19,16 @@ Create a `.env` file in the project root with your configurations.
 ## Usage
 
 ```bash
-poetry run python -m grillgauge.generator --help
+poetry run grillgauge --help
 ```
+
+### Scanning for BLE Devices
+
+```bash
+poetry run grillgauge scan --timeout 10
+```
+
+This will scan for BLE devices and display their information, including your grillprobeE meat probe details.
 
 ## Development
 
