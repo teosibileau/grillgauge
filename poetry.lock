@@ -458,6 +458,21 @@ dev = ["pre-commit", "tox"]
 testing = ["coverage", "pytest", "pytest-benchmark"]
 
 [[package]]
+name = "prometheus-client"
+version = "0.23.1"
+description = "Python client for the Prometheus monitoring system."
+optional = false
+python-versions = ">=3.9"
+groups = ["main"]
+files = [
+    {file = "prometheus_client-0.23.1-py3-none-any.whl", hash = "sha256:dd1913e6e76b59cfe44e7a4b83e01afc9873c1bdfd2ed8739f1e76aeca115f99"},
+    {file = "prometheus_client-0.23.1.tar.gz", hash = "sha256:6ae8f9081eaaaf153a2e959d2e6c4f4fb57b12ef76c8c7980202f1e57b48b2ce"},
+]
+
+[package.extras]
+twisted = ["twisted"]
+
+[[package]]
 name = "prompt-toolkit"
 version = "3.0.52"
 description = "Library for building powerful interactive command lines in Python"
@@ -1099,4 +1114,4 @@ all = ["winrt-Windows.Foundation.Collections[all] (>=3.2.1.0,<3.3.0.0)", "winrt-
 [metadata]
 lock-version = "2.1"
 python-versions = "^3.10"
-content-hash = "30cbf452f75c80e8aff29746fe0c3255723c00d9dbd768fad283a3cd6abddfbc"
+content-hash = "7ff48d7482eda1a0fa03a578d66956a1660d482fc6a586d91be33904cd874e7c"
