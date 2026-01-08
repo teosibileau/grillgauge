@@ -1,38 +1,38 @@
 import asyncio
+
 import click
-from bleak import BleakScanner
+
+from .config import logger
+from .scanner import DeviceScanner
 
 
 @click.group()
 def main():
     """GrillGauge CLI tool for BLE meat probe monitoring."""
-    pass
 
 
 @main.command()
-@click.option("--timeout", default=5.0, help="Scan timeout in seconds.")
+@click.option("--timeout", default=10.0, help="Scan timeout in seconds.")
 def scan(timeout):
-    """Scan for BLE devices and display information."""
-    click.echo("Scanning for BLE devices...")
+    """Automatically scan and classify BLE devices."""
+    scanner = DeviceScanner(timeout)
 
-    async def _scan():
-        try:
-            devices = await BleakScanner.discover(timeout=timeout)
-            if not devices:
-                click.echo("No devices found.")
-                return
+    async def run_scan():
+        devices = await scanner()
 
-            for device in devices:
-                click.echo(
-                    f"Name: {device.name or 'Unknown'}, Address: {device.address}, RSSI: {device.rssi}"
-                )
-                if device.metadata:
-                    click.echo(f"  Metadata: {device.metadata}")
-                click.echo("---")
-        except Exception as e:
-            click.echo(f"Error during scan: {e}")
+        probes = [d for d in devices if d["classification"] == "probe"]
+        ignored = [d for d in devices if d["classification"] == "ignored"]
 
-    asyncio.run(_scan())
+        logger.info(
+            f"Scan complete: {len(probes)} probes added, {len(ignored)} devices ignored"
+        )
+
+        if probes:
+            logger.info("New probes:")
+            for probe in probes:
+                logger.info(f"  - {probe['name']} ({probe['address']})")
+
+    asyncio.run(run_scan())
 
 
 if __name__ == "__main__":
