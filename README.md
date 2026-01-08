@@ -12,23 +12,33 @@ This package uses Poetry for dependency management. To install:
 
 ## Setup
 
-### Environment Variables
-
-Create a `.env` file in the project root with your configurations.
-
 ## Usage
 
 ```bash
 poetry run grillgauge --help
 ```
 
-### Scanning for BLE Devices
+### Scanning and Configuring BLE Probes
 
 ```bash
 poetry run grillgauge scan --timeout 10
 ```
 
-This will scan for BLE devices and display their information, including your grillprobeE meat probe details.
+This will automatically scan for BLE devices and classify them:
+- Devices with battery and/or temperature capabilities → Added as probes
+- Devices without capabilities → Added to ignored list
+
+The system automatically generates probe names (Probe1, Probe2, etc.) and saves configuration to `.env`.
+
+### Managing Ignored Devices
+
+```bash
+# View currently ignored devices
+poetry run grillgauge ignored
+
+# Remove a device from ignored list
+poetry run grillgauge unignore AA:BB:CC:DD:EE:FF
+```
 
 ## Development
 
