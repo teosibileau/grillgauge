@@ -15,7 +15,7 @@ def main():
 @click.option("--timeout", default=10.0, help="Scan timeout in seconds.")
 def scan(timeout):
     """Automatically scan and classify BLE devices."""
-    scanner = DeviceScanner(timeout)
+    scanner = DeviceScanner(timeout=timeout)
 
     async def run_scan():
         devices = await scanner()

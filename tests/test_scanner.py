@@ -7,6 +7,10 @@ from grillgauge.scanner import DeviceScanner
 
 DEFAULT_SCAN_TIMEOUT = 10.0
 
+# Expected temperature values for testing
+EXPECTED_MEAT_TEMP = 28.0
+EXPECTED_GRILL_TEMP = 31.0
+
 
 class TestDeviceScanner:
     @pytest.fixture
@@ -29,27 +33,31 @@ class TestDeviceScanner:
         assert scanner.devices == []
         assert hasattr(scanner, "env_manager")
 
-    def test_generate_probe_name_no_conflicts(self, scanner):
-        """Test name generation with no existing probes."""
-        existing_probes = {}
-        name = scanner._generate_probe_name(existing_probes)
-        assert name == "Probe1"
+    def test_parse_temperature_valid_data(self, scanner):
+        """Test parsing valid grillprobeE temperature data."""
+        # Sample data: FF-FF-A8-02-C6-02-0C
+        # Meat temp: (0x02A8 / 10.0) - 40.0 = 68.0 - 40.0 = 28.0°C
+        # Grill temp: (0x02C6 / 10.0) - 40.0 = 71.0 - 40.0 = 31.0°C
+        data = bytes([0xFF, 0xFF, 0xA8, 0x02, 0xC6, 0x02, 0x0C])
+        meat_temp, grill_temp = scanner._parse_temperature(data)
 
-    def test_generate_probe_name_with_conflicts(self, scanner):
-        """Test name generation avoids conflicts."""
-        existing_probes = {
-            "mac1": {"name": "Probe1"},
-            "mac2": {"name": "Probe2"},
-            "mac3": {"name": "Probe4"},
-        }
-        name = scanner._generate_probe_name(existing_probes)
-        assert name == "Probe3"  # Should find the next available number
+        assert meat_temp == EXPECTED_MEAT_TEMP
+        assert grill_temp == EXPECTED_GRILL_TEMP
 
-    def test_generate_probe_name_skips_taken_numbers(self, scanner):
-        """Test name generation skips taken numbers."""
-        existing_probes = {
-            "mac1": {"name": "Probe1"},
-            "mac2": {"name": "Probe3"},
-        }
-        name = scanner._generate_probe_name(existing_probes)
-        assert name == "Probe2"  # Should find Probe2 as available
+    def test_parse_temperature_insufficient_data(self, scanner):
+        """Test parsing temperature data with insufficient bytes."""
+        data = bytes([0xFF, 0xFF, 0xA8])  # Only 3 bytes, need 7
+        meat_temp, grill_temp = scanner._parse_temperature(data)
+
+        assert meat_temp is None
+        assert grill_temp is None
+
+    def test_parse_temperature_invalid_data(self, scanner):
+        """Test parsing temperature data with invalid values."""
+        # Use data that would cause parsing errors
+        data = bytes([0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF])  # All FF bytes
+        meat_temp, grill_temp = scanner._parse_temperature(data)
+
+        # Should still parse but give extreme values
+        assert meat_temp is not None
+        assert grill_temp is not None

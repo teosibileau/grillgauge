@@ -71,19 +71,3 @@ class EnvManager:
             }
             probes.append(probe)
         return probes
-
-    def add_ignored(self, mac: str):
-        """Add a device to ignored list."""
-        ignored = set(self._get_list("IGNORED_MACS"))
-        ignored.add(mac)
-        self._set_list("IGNORED_MACS", list(ignored))
-
-    def remove_ignored(self, mac: str):
-        """Remove a device from ignored list."""
-        ignored = set(self._get_list("IGNORED_MACS"))
-        ignored.discard(mac)
-        self._set_list("IGNORED_MACS", list(ignored))
-
-    def list_ignored(self) -> list[str]:
-        """Return list of ignored MAC addresses."""
-        return self._get_list("IGNORED_MACS")

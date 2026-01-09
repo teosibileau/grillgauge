@@ -1,130 +1,190 @@
+import asyncio
+
 from bleak import BleakClient, BleakScanner
 
 from .config import logger
 from .env import EnvManager
 
-MIN_TEMPERATURE_DATA_LENGTH = 2
+# grillprobeE service UUIDs
+DATA_SERVICE = "0000fb00-0000-1000-8000-00805f9b34fb"
+TEMP_CHARACTERISTIC = "0000fb02-0000-1000-8000-00805f9b34fb"
+
+# Constants for scanner behavior
+DEFAULT_SCAN_TIMEOUT = 10.0
+CLIENT_CONNECTION_TIMEOUT = 5.0
+
+# Constants for temperature parsing
+MIN_TEMPERATURE_DATA_LENGTH = 7
+MEAT_TEMP_START_INDEX = 2
+MEAT_TEMP_END_INDEX = 4
+GRILL_TEMP_START_INDEX = 4
+GRILL_TEMP_END_INDEX = 6
+TEMP_DIVISOR = 10.0
+TEMP_OFFSET = 40.0
 
 
 class DeviceScanner:
-    def __init__(self, timeout: float = 10.0):
-        """Initialize scanner with timeout."""
+    def __init__(self, timeout: float = DEFAULT_SCAN_TIMEOUT):
         self.env_manager = EnvManager()
         self.timeout = timeout
-        self.devices = []  # List of classified devices
+        self.devices = []
 
     async def __call__(self):
-        """Run scan and classification, return results."""
-        await self._scan_and_classify()
+        await self._scan_grillprobee_devices()
         return self.devices
 
-    async def _scan_and_classify(self):
-        """Scan BLE devices and classify them automatically."""
-        logger.info("Scanning for BLE devices...")
+    async def _scan_grillprobee_devices(self):
+        logger.info("Scanning for grillprobeE devices...")
 
         try:
-            devices = await BleakScanner.discover(timeout=self.timeout)
+            # Discover devices advertising the data service (temporarily less restrictive)
+            devices = await BleakScanner.discover(
+                timeout=self.timeout, service_uuids=[DATA_SERVICE]
+            )
+
             if not devices:
-                logger.info("No devices found")
+                logger.info("No grillprobeE devices found")
                 return
 
-            # Get existing classifications
-            existing_probes = {p["mac"]: p for p in self.env_manager.list_probes()}
-            ignored_macs = set(self.env_manager.list_ignored())
-
-            classified_count = 0
+            logger.info(f"Found {len(devices)} potential grillprobeE devices")
 
             for device in devices:
-                if device.address in existing_probes or device.address in ignored_macs:
-                    continue  # Skip already classified devices
-
-                logger.debug(
-                    f"Inspecting device: {device.name or 'Unknown'} ({device.address})"
-                )
-
-                battery, temp = await self._inspect_device(device.address)
-
-                if battery is not None or temp is not None:
-                    # Valid probe - add to probes
-                    name = self._generate_probe_name(existing_probes)
-                    self.env_manager.add_probe(device.address, name)
-
-                    device_info = {
-                        "address": device.address,
-                        "name": name,
-                        "classification": "probe",
-                        "capabilities": {"battery": battery, "temperature": temp},
-                    }
-
-                    logger.info(f"Added probe: {name} ({device.address})")
-
-                else:
-                    # No capabilities - add to ignored
-                    self.env_manager.add_ignored(device.address)
-
-                    device_info = {
-                        "address": device.address,
-                        "name": device.name or "Unknown",
-                        "classification": "ignored",
-                        "capabilities": None,
-                    }
-
-                    logger.debug(f"Ignored device: {device.address}")
-
-                self.devices.append(device_info)
-                classified_count += 1
-
-            logger.info(f"Classified {classified_count} new devices")
+                await self._process_device(device)
 
         except Exception as e:
             logger.error(f"Scan failed: {e}")
 
-    async def _inspect_device(self, address: str):
-        """Inspect device for battery and temperature."""
+    async def _process_device(self, device):
+        # Get device name from advertisement data (no exceptions expected)
+        device_name = getattr(device, "name", None) or getattr(
+            device, "local_name", None
+        )
+        if device_name:
+            logger.info(f"Device name from advertisement: {device_name}")
+        else:
+            # Fallback to generated name if advertisement doesn't have it
+            device_name = f"grillprobeE_{device.address[-4:]}"
+            logger.info(f"Using generated device name: {device_name}")
+
+        # Connect to device (this can fail)
         try:
-            async with BleakClient(address, timeout=5.0) as client:
-                services = await client.get_services()
+            async with BleakClient(
+                device.address, timeout=CLIENT_CONNECTION_TIMEOUT
+            ) as client:
+                logger.info(f"Processing device: {device.address}")
 
-                battery_level = None
-                temperature = None
-
-                # Check battery service
-                battery_svc = services.get_service(
-                    "0000180f-0000-1000-8000-00805f9b34fb"
-                )
-                if battery_svc:
-                    battery_char = battery_svc.get_characteristic(
-                        "00002a19-0000-1000-8000-00805f9b34fb"
+                # Read temperature data (mandatory)
+                temp_data = await self._read_temperature_data(client)
+                if not temp_data:
+                    logger.error(
+                        f"Failed to read temperature data from {device.address}"
                     )
-                    if battery_char:
-                        battery_data = await client.read_gatt_char(battery_char.uuid)
-                        battery_level = battery_data[0] if battery_data else None
+                    return
 
-                # Check temperature service
-                temp_svc = services.get_service("0000181a-0000-1000-8000-00805f9b34fb")
-                if temp_svc:
-                    temp_char = temp_svc.get_characteristic(
-                        "00002a6e-0000-1000-8000-00805f9b34fb"
-                    )
-                    if temp_char:
-                        temp_data = await client.read_gatt_char(temp_char.uuid)
-                        if len(temp_data) >= MIN_TEMPERATURE_DATA_LENGTH:
-                            temp_raw = int.from_bytes(
-                                temp_data[:2], byteorder="little", signed=True
-                            )
-                            temperature = temp_raw / 100.0
+        except Exception as e:
+            logger.error(f"Failed to connect to device {device.address}: {e}")
+            return
 
-                return battery_level, temperature
+        # Parse temperatures (binary parsing can fail)
+        meat_temp, grill_temp = self._parse_temperature(temp_data)
+        if meat_temp is None and grill_temp is None:
+            logger.error(f"Invalid temperature data from {device.address}")
+            return
 
-        except Exception:
+        logger.info(f"Meat temp: {meat_temp:.1f}°C, Grill temp: {grill_temp:.1f}°C")
+
+        # Register device (no exceptions expected)
+        self.env_manager.add_probe(device.address, device_name)
+
+        device_info = {
+            "address": device.address,
+            "name": device_name,
+            "classification": "probe",
+            "capabilities": {
+                "meat_temperature": meat_temp,
+                "grill_temperature": grill_temp,
+            },
+        }
+
+        self.devices.append(device_info)
+        logger.info(f"Successfully registered: {device_name}")
+
+    async def _read_temperature_data(self, client):
+        # Get services (this can fail if connection is bad)
+        try:
+            services = client.services
+        except Exception as e:
+            logger.error(f"Failed to get services: {e}")
+            return None
+
+        data_svc = services.get_service(DATA_SERVICE)
+        if not data_svc:
+            logger.error("Data service not found")
+            return None
+
+        temp_char = data_svc.get_characteristic(TEMP_CHARACTERISTIC)
+        if not temp_char:
+            logger.error("Temperature characteristic not found")
+            return None
+
+        # Set up notification handler for temperature data
+        notification_received = False
+        received_data = None
+
+        def notification_handler(sender, data):
+            nonlocal notification_received, received_data
+            logger.debug(
+                f"Received temperature notification: {data.hex()} sender: {sender}"
+            )
+            received_data = data
+            notification_received = True
+
+        # Subscribe to notifications (this can fail)
+        try:
+            await client.start_notify(temp_char.uuid, notification_handler)
+
+            # Wait for notification (2 seconds, same as working version)
+            await asyncio.sleep(2.0)
+
+            # Clean up notification subscription
+            await client.stop_notify(temp_char.uuid)
+
+        except Exception as e:
+            logger.error(f"Notification handling failed: {e}")
+            return None
+
+        if notification_received and received_data:
+            return received_data
+
+        logger.warning("No temperature notifications received within timeout")
+        return None
+
+    def _parse_temperature(self, data):
+        if len(data) < MIN_TEMPERATURE_DATA_LENGTH:
+            logger.warning(f"Temperature data too short: {len(data)} bytes")
             return None, None
 
-    def _generate_probe_name(self, existing_probes):
-        """Generate unique probe name."""
-        existing_names = {probe["name"] for probe in existing_probes.values()}
+        try:
+            meat_raw = int.from_bytes(
+                data[MEAT_TEMP_START_INDEX:MEAT_TEMP_END_INDEX],
+                byteorder="little",
+                signed=True,
+            )
+        except ValueError as e:
+            logger.warning(f"Failed to parse meat temperature: {e}")
+            return None, None
 
-        counter = 1
-        while f"Probe{counter}" in existing_names:
-            counter += 1
+        try:
+            grill_raw = int.from_bytes(
+                data[GRILL_TEMP_START_INDEX:GRILL_TEMP_END_INDEX],
+                byteorder="little",
+                signed=True,
+            )
+        except ValueError as e:
+            logger.warning(f"Failed to parse grill temperature: {e}")
+            return None, None
 
-        return f"Probe{counter}"
+        meat_temp = (meat_raw / TEMP_DIVISOR) - TEMP_OFFSET
+        grill_temp = (grill_raw / TEMP_DIVISOR) - TEMP_OFFSET
+
+        return meat_temp, grill_temp
