@@ -10,17 +10,19 @@ packages = [
 
 [tool.poetry.dependencies]
 python = "^3.10"
-qrcode = "^8.2"
 python-dotenv = "^1.2.1"
 click = "^8.3.0"
-Pillow = "^10.0.0"
+bleak = "^2.1.1"
+prometheus-client = "^0.23.1"
+coloredlogs = "^15.0.1"
 
 [tool.poetry.group.dev.dependencies]
 pytest = "^8.0"
 pytest-cov = "^6.0"
+ipdb = "^0.13.13"
 
 [tool.poetry.scripts]
-grillgauge = "grillgauge.generator:main"
+grillgauge = "grillgauge.cli:main"
 
 [tool.ruff]
 line-length = 88
