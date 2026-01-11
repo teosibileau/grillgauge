@@ -2,28 +2,24 @@ import asyncio
 
 from bleak import BleakClient, BleakScanner
 
-from .config import logger
+from .config import DATA_SERVICE, TEMP_CHARACTERISTIC, logger
 from .env import EnvManager
-
-# grillprobeE service UUIDs
-DATA_SERVICE = "0000fb00-0000-1000-8000-00805f9b34fb"
-TEMP_CHARACTERISTIC = "0000fb02-0000-1000-8000-00805f9b34fb"
-
-# Constants for scanner behavior
-DEFAULT_SCAN_TIMEOUT = 10.0
-CLIENT_CONNECTION_TIMEOUT = 5.0
-
-# Constants for temperature parsing
-MIN_TEMPERATURE_DATA_LENGTH = 7
-MEAT_TEMP_START_INDEX = 2
-MEAT_TEMP_END_INDEX = 4
-GRILL_TEMP_START_INDEX = 4
-GRILL_TEMP_END_INDEX = 6
-TEMP_DIVISOR = 10.0
-TEMP_OFFSET = 40.0
 
 
 class DeviceScanner:
+    # Constants for scanner behavior
+    DEFAULT_SCAN_TIMEOUT = 10.0
+    CLIENT_CONNECTION_TIMEOUT = 5.0
+
+    # Constants for temperature parsing
+    MIN_TEMPERATURE_DATA_LENGTH = 7
+    MEAT_TEMP_START_INDEX = 2
+    MEAT_TEMP_END_INDEX = 4
+    GRILL_TEMP_START_INDEX = 4
+    GRILL_TEMP_END_INDEX = 6
+    TEMP_DIVISOR = 10.0
+    TEMP_OFFSET = 40.0
+
     def __init__(self, timeout: float = DEFAULT_SCAN_TIMEOUT):
         self.env_manager = EnvManager()
         self.timeout = timeout
@@ -69,7 +65,7 @@ class DeviceScanner:
         # Connect to device (this can fail)
         try:
             async with BleakClient(
-                device.address, timeout=CLIENT_CONNECTION_TIMEOUT
+                device.address, timeout=self.CLIENT_CONNECTION_TIMEOUT
             ) as client:
                 logger.info(f"Processing device: {device.address}")
 
@@ -160,13 +156,13 @@ class DeviceScanner:
         return None
 
     def _parse_temperature(self, data):
-        if len(data) < MIN_TEMPERATURE_DATA_LENGTH:
+        if len(data) < self.MIN_TEMPERATURE_DATA_LENGTH:
             logger.warning(f"Temperature data too short: {len(data)} bytes")
             return None, None
 
         try:
             meat_raw = int.from_bytes(
-                data[MEAT_TEMP_START_INDEX:MEAT_TEMP_END_INDEX],
+                data[self.MEAT_TEMP_START_INDEX : self.MEAT_TEMP_END_INDEX],
                 byteorder="little",
                 signed=True,
             )
@@ -176,7 +172,7 @@ class DeviceScanner:
 
         try:
             grill_raw = int.from_bytes(
-                data[GRILL_TEMP_START_INDEX:GRILL_TEMP_END_INDEX],
+                data[self.GRILL_TEMP_START_INDEX : self.GRILL_TEMP_END_INDEX],
                 byteorder="little",
                 signed=True,
             )
@@ -184,7 +180,7 @@ class DeviceScanner:
             logger.warning(f"Failed to parse grill temperature: {e}")
             return None, None
 
-        meat_temp = (meat_raw / TEMP_DIVISOR) - TEMP_OFFSET
-        grill_temp = (grill_raw / TEMP_DIVISOR) - TEMP_OFFSET
+        meat_temp = (meat_raw / self.TEMP_DIVISOR) - self.TEMP_OFFSET
+        grill_temp = (grill_raw / self.TEMP_DIVISOR) - self.TEMP_OFFSET
 
         return meat_temp, grill_temp
