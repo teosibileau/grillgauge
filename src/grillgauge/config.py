@@ -16,3 +16,11 @@ coloredlogs.install(
     fmt="%(asctime)s %(name)s %(levelname)s %(message)s",
     datefmt="%H:%M:%S",
 )
+
+# Server Configuration
+SCAN_INTERVAL_SECONDS: int = 10  # Temperature polling periodicity
+
+# Prometheus Metric Names
+MEAT_TEMPERATURE_METRIC_NAME = "grillgauge_meat_temperature_celsius"
+GRILL_TEMPERATURE_METRIC_NAME = "grillgauge_grill_temperature_celsius"
+PROBE_STATUS_METRIC_NAME = "grillgauge_probe_status"

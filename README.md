@@ -41,6 +41,45 @@ INFO Meat temp: 28.0°C, Grill temp: 31.0°C
 INFO Successfully registered: BBQ ProbeE 26012
 ```
 
+### Prometheus Metrics Server
+
+```bash
+# Secure default (localhost only)
+poetry run grillgauge serve --port 8000
+
+# Allow access from other machines on the network
+poetry run grillgauge serve --host 0.0.0.0 --port 8000
+```
+
+Starts an HTTP server that exposes grillprobeE temperature metrics for Prometheus monitoring. The server runs background scans every 30 seconds and serves metrics at `/metrics`.
+
+**Security Note**: By default, the server binds to `127.0.0.1` (localhost only) for security. Use `--host 0.0.0.0` only when you need Prometheus to scrape metrics from a different machine on your network.
+
+#### Metrics Endpoints
+
+- `/metrics` - Prometheus metrics output
+- `/health` - Health check endpoint
+
+#### Example Metrics Output
+
+```
+# HELP grillgauge_meat_temperature_celsius Meat probe temperature in Celsius
+# TYPE grillgauge_meat_temperature_celsius gauge
+grillgauge_meat_temperature_celsius{device_address="AA:BB:CC:DD:EE:FF",probe_name="bbq-probee-26012"} 65.5
+
+# HELP grillgauge_grill_temperature_celsius Grill temperature in Celsius
+# TYPE grillgauge_grill_temperature_celsius gauge
+grillgauge_grill_temperature_celsius{device_address="AA:BB:CC:DD:EE:FF",probe_name="bbq-probee-26012"} 225.0
+
+# HELP grillgauge_probe_status Probe connectivity status (1=online, 0=offline)
+# TYPE grillgauge_probe_status gauge
+grillgauge_probe_status{device_address="AA:BB:CC:DD:EE:FF",probe_name="bbq-probee-26012"} 1
+```
+
+#### Fault Tolerance
+
+The metrics server maintains last known good temperature values during BLE connection failures, ensuring stable monitoring data even when probes temporarily disconnect.
+
 ### Device Configuration
 
 Configured devices are saved to `.env`:
