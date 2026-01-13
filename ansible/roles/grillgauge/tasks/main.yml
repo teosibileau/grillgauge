@@ -1,0 +1,61 @@
+---
+- name: Install python3-venv for virtual environments
+  apt:
+    name: python3-venv
+    state: present
+  when: ansible_facts['os_family'] == "Debian"
+
+- name: Create grillgauge directories
+  file:
+    path: "{{ item }}"
+    state: directory
+    owner: "{{ ansible_user | default('root') }}"
+    group: "{{ ansible_user | default('root') }}"
+    mode: '0755'
+  loop:
+    - /opt/grillgauge
+
+- name: Copy grillgauge source code from control machine
+  copy:
+    src: "{{ playbook_dir }}/../../src/"
+    dest: /opt/grillgauge/src/
+    owner: "{{ ansible_user | default('root') }}"
+    group: "{{ ansible_user | default('root') }}"
+
+- name: Copy Python requirements file
+  copy:
+    src: "{{ playbook_dir }}/../../{{ item }}"
+    dest: /opt/grillgauge
+    owner: "{{ ansible_user | default('root') }}"
+    group: "{{ ansible_user | default('root') }}"
+  loop:
+    - requirements.txt
+
+- name: Create virtual environment for grillgauge
+  command: python3 -m venv /opt/grillgauge/venv
+  args:
+    creates: /opt/grillgauge/venv
+- name: Install grillgauge dependencies in virtual environment
+  command: /opt/grillgauge/venv/bin/pip install -r /opt/grillgauge/requirements.txt
+  args:
+    chdir: /opt/grillgauge
+
+- name: Create .env file
+  template:
+    src: grillgauge.env.j2
+    dest: /opt/grillgauge/.env
+    owner: "{{ ansible_user | default('root') }}"
+    group: "{{ ansible_user | default('root') }}"
+    mode: '0600'
+
+- name: Install systemd service
+  template:
+    src: grillgauge.service.j2
+    dest: /etc/systemd/system/grillgauge.service
+  notify: restart grillgauge
+
+- name: Cleanup temporary files
+  file:
+    path: /tmp/grillgauge
+    state: absent
+  ignore_errors: true

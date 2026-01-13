@@ -1,0 +1,37 @@
+---
+# Main provisioning playbook for grillgauge monitoring stack
+
+- name: Provision monitoring stack
+  hosts: all
+  become: true
+  gather_facts: true
+
+  pre_tasks:
+    - name: Update package cache
+      apt:
+        update_cache: yes
+      when: ansible_facts["os_family"] == "Debian"
+
+  roles:
+    - grillgauge
+    - prometheus
+    - grafatui
+
+  post_tasks:
+    - name: Verify services are running
+      systemd:
+        name: "{{ item }}"
+        state: started
+        enabled: true
+      loop:
+        - grillgauge
+        - prometheus
+      ignore_errors: true
+
+    - name: Show service status
+      command: systemctl status {{ item }} --no-pager -l
+      loop:
+        - grillgauge
+        - prometheus
+      ignore_errors: true
+      changed_when: false

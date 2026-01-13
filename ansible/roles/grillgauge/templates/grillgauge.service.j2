@@ -1,0 +1,16 @@
+[Unit]
+Description=GrillGauge BLE Monitoring
+After=network.target bluetooth.service
+Wants=bluetooth.service
+
+[Service]
+Type=simple
+User=root
+WorkingDirectory=/opt/grillgauge
+Environment=PATH=/opt/grillgauge/venv/bin:/usr/local/bin:/usr/bin:/bin
+ExecStart=/opt/grillgauge/venv/bin/python -m src.grillgauge.cli serve --host 127.0.0.1 --port 8000
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target

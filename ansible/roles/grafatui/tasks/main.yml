@@ -1,0 +1,50 @@
+---
+- name: Install Rust toolchain
+  block:
+    - name: Update package cache
+      apt:
+        update_cache: yes
+
+    - name: Install Rust dependencies
+      apt:
+        name:
+          - curl
+          - build-essential
+          - pkg-config
+          - libssl-dev
+        state: present
+
+    - name: Install Rust toolchain
+      shell: curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
+      args:
+        creates: /root/.cargo/bin/rustc
+      environment:
+        CARGO_HOME: /root/.cargo
+        RUSTUP_HOME: /root/.rustup
+
+    - name: Add Rust to system PATH
+      lineinfile:
+        path: /etc/environment
+        line: 'PATH="/root/.cargo/bin:$PATH"'
+  when: ansible_facts.os_family == "Debian"
+
+- name: Install grafatui
+  command: /root/.cargo/bin/cargo install grafatui
+  environment:
+    PATH: /root/.cargo/bin:{{ ansible_facts["env"]["PATH"] }}
+    CARGO_HOME: /root/.cargo
+    RUSTUP_HOME: /root/.rustup
+  args:
+    creates: /root/.cargo/bin/grafatui
+
+- name: Create grafatui configuration directory
+  file:
+    path: /etc/grafatui
+    state: directory
+    mode: '0755'
+
+- name: Configure grafatui
+  template:
+    src: config.yml.j2
+    dest: /etc/grafatui/config.yml
+    mode: '0644'
