@@ -1,0 +1,7 @@
+ahoyapi: v2
+usage: Smart Home cli tools.
+commands:
+  docker:
+    usage: A series of docker commands (experimental)
+    imports:
+      - .ahoy/docker.ahoy.yml
