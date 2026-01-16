@@ -14,12 +14,11 @@ commands:
     usage: Destroy all the docker compose containers. (use before deleting folder)
   exec:
     cmd: |
-      first_arg=$(echo "$@" | sed  's/\([[:alnum:]]*\ \).*/\1/')
-      rest_args=$(echo "$@" | sed  's/\([[:alnum:]]*\ \)//')
+      first_arg=$(echo "$@" | awk  '{print $1}')
+      rest_args=$(echo "$@" | awk '{$1=""; print substr($0,2)}')
       container=$first_arg
       args=" $rest_args"
       id=$(ahoy docker compose ps -q $container)
-
       if [ -t 0 ]; then
         # if the input is empty, then use a tty session
         docker exec -it $id bash -c "$command $args"
@@ -28,6 +27,12 @@ commands:
         docker exec -i $id bash -c "$command $args"
       fi
     usage: execute a command in a running container
+  shell:
+    cmd: |
+      first_arg=$(echo "$@" | awk  '{print $1}')
+      id=$(ahoy docker compose ps -q $first_arg)
+      docker exec -it $id bash
+    usage: open a bash shell in a running container
   run:
     usage: Docker run
     cmd: |

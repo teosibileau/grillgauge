@@ -25,6 +25,7 @@
         enabled: true
       loop:
         - grillgauge
+        - grillgauge-scan.timer
         - prometheus
       ignore_errors: true
 
@@ -32,6 +33,7 @@
       command: systemctl status {{ item }} --no-pager -l
       loop:
         - grillgauge
+        - grillgauge-scan.timer
         - prometheus
       ignore_errors: true
       changed_when: false

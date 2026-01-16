@@ -54,6 +54,27 @@
     dest: /etc/systemd/system/grillgauge.service
   notify: restart grillgauge
 
+- name: Install systemd scan service
+  template:
+    src: grillgauge-scan.service.j2
+    dest: /etc/systemd/system/grillgauge-scan.service
+    mode: '0644'
+  notify: restart grillgauge-scan timer
+
+- name: Install systemd scan timer
+  template:
+    src: grillgauge-scan.timer.j2
+    dest: /etc/systemd/system/grillgauge-scan.timer
+    mode: '0644'
+  notify: restart grillgauge-scan timer
+
+- name: Enable and start grillgauge-scan timer
+  systemd:
+    name: grillgauge-scan.timer
+    enabled: yes
+    state: started
+    daemon_reload: yes
+
 - name: Cleanup temporary files
   file:
     path: /tmp/grillgauge

@@ -4,3 +4,9 @@
     name: grillgauge
     state: restarted
     daemon_reload: yes
+
+- name: restart grillgauge-scan timer
+  systemd:
+    name: grillgauge-scan.timer
+    state: restarted
+    daemon_reload: yes

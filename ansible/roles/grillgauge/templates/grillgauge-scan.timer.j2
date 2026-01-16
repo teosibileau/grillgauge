@@ -1,0 +1,16 @@
+[Unit]
+Description=GrillGauge Periodic Device Scan Timer
+Requires=grillgauge-scan.service
+
+[Timer]
+# Wait 2 minutes after boot before first scan (bluetooth initialization)
+OnBootSec=2min
+
+# Run every {{ grillgauge_scan_frequency_minutes }} minutes after last activation
+OnUnitActiveSec={{ grillgauge_scan_frequency_minutes }}min
+
+# Catch up missed runs if system was down
+Persistent=true
+
+[Install]
+WantedBy=timers.target

@@ -1,0 +1,11 @@
+---
+# GrillGauge scan configuration
+
+# How often to scan for new BLE devices (in minutes)
+# Recommended range: 3-30 minutes
+# Note: Too frequent scanning may drain BLE device batteries
+grillgauge_scan_frequency_minutes: 5
+
+# BLE scan timeout duration (in seconds)
+# How long to wait for BLE devices to respond during each scan
+grillgauge_scan_timeout_seconds: 10
