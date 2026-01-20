@@ -2,7 +2,7 @@ import asyncio
 
 from bleak import BleakClient
 
-from .config import DATA_SERVICE, TEMP_CHARACTERISTIC, logger
+from .config import BLE_CONNECTION_TIMEOUT, DATA_SERVICE, TEMP_CHARACTERISTIC, logger
 
 
 class GrillProbe:
@@ -20,7 +20,7 @@ class GrillProbe:
     def __init__(self, device_address: str):
         """Initialize probe with BLE device address."""
         self.device_address = device_address
-        self.client = BleakClient(device_address, timeout=5.0)
+        self.client = BleakClient(device_address, timeout=BLE_CONNECTION_TIMEOUT)
 
     async def __aenter__(self):
         """Async context manager entry - connect to device."""

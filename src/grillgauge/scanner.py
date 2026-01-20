@@ -3,7 +3,7 @@ import asyncio
 from bleak import BleakScanner
 from bleak.exc import BleakDBusError, BleakDeviceNotFoundError, BleakError
 
-from .config import DATA_SERVICE, logger
+from .config import BLE_CONNECTION_TIMEOUT, DATA_SERVICE, logger
 from .env import EnvManager
 from .probe import GrillProbe
 
@@ -69,7 +69,9 @@ class DeviceScanner:
                     return
 
         except asyncio.TimeoutError:
-            logger.error(f"Connection timeout for device {device.address} (5s limit)")
+            logger.error(
+                f"Connection timeout for device {device.address} ({BLE_CONNECTION_TIMEOUT}s limit)"
+            )
             return
         except BleakDeviceNotFoundError as e:
             logger.error(f"Device not found: {device.address}: {e}")
