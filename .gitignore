@@ -129,3 +129,6 @@ dmypy.json
 .pyre/
 
 requirements.txt
+
+# Ansible production inventory (contains host details and SSH key paths)
+ansible/inventory/production.ini

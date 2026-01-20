@@ -13,6 +13,8 @@
       when: ansible_facts["os_family"] == "Debian"
 
   roles:
+    - system
+    - bluetooth
     - grillgauge
     - prometheus
     - grafatui
@@ -24,6 +26,7 @@
         state: started
         enabled: true
       loop:
+        - bluetooth
         - grillgauge
         - grillgauge-scan.timer
         - prometheus
@@ -32,6 +35,7 @@
     - name: Show service status
       command: systemctl status {{ item }} --no-pager -l
       loop:
+        - bluetooth
         - grillgauge
         - grillgauge-scan.timer
         - prometheus

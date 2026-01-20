@@ -1,26 +1,9 @@
 ---
-- name: Install Prometheus
-  block:
-    - name: Update package cache
-      apt:
-        update_cache: yes
-
-    - name: Add Prometheus APT key
-      apt_key:
-        url: https://packages.grafana.com/gpg.key
-        state: present
-
-    - name: Add Prometheus repository
-      apt_repository:
-        repo: "deb https://packages.grafana.com/oss/deb stable main"
-        state: present
-        filename: grafana
-
-    - name: Install Prometheus
-      apt:
-        name: prometheus
-        state: present
-        update_cache: yes
+- name: Install Prometheus from official Debian repositories
+  apt:
+    name: prometheus
+    state: present
+    update_cache: yes
   when: ansible_facts.os_family == "Debian"
 
 - name: Create prometheus user

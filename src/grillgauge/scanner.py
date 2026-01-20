@@ -1,4 +1,7 @@
+import asyncio
+
 from bleak import BleakScanner
+from bleak.exc import BleakDBusError, BleakDeviceNotFoundError, BleakError
 
 from .config import DATA_SERVICE, logger
 from .env import EnvManager
@@ -65,8 +68,23 @@ class DeviceScanner:
                     )
                     return
 
+        except asyncio.TimeoutError:
+            logger.error(f"Connection timeout for device {device.address} (5s limit)")
+            return
+        except BleakDeviceNotFoundError as e:
+            logger.error(f"Device not found: {device.address}: {e}")
+            return
+        except BleakDBusError as e:
+            logger.error(f"D-Bus error for {device.address}: {e}")
+            return
+        except BleakError as e:
+            logger.error(f"BLE error for {device.address}: {e}")
+            return
         except Exception as e:
-            logger.error(f"Failed to process device {device.address}: {e}")
+            logger.error(
+                f"Unexpected error processing {device.address}: "
+                f"{type(e).__name__}: {e or 'Unknown error'}"
+            )
             return
 
         logger.info(f"Meat temp: {meat_temp:.1f}°C, Grill temp: {grill_temp:.1f}°C")
