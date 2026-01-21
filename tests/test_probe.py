@@ -147,3 +147,136 @@ class TestGrillProbe:
 
         assert meat_temp is None  # Should fail parsing
         assert grill_temp is None
+
+    @pytest.mark.asyncio
+    async def test_read_temperature_attempts_pairing(
+        self, grill_probe, mock_bleak_client
+    ):
+        """Test that pairing is attempted before reading temperature."""
+        # Mock successful pairing
+        mock_bleak_client.pair = AsyncMock(return_value=None)
+
+        # Mock services and notification
+        mock_services = MagicMock()
+        mock_service = MagicMock()
+        mock_char = MagicMock()
+
+        mock_bleak_client.services = mock_services
+        mock_services.get_service.return_value = mock_service
+        mock_service.get_characteristic.return_value = mock_char
+
+        # Mock notification with valid data
+        test_data = bytes([0xFF, 0xFF, 0xA8, 0x02, 0xC6, 0x02, 0x0C])
+
+        async def mock_start_notify(_uuid, callback):
+            callback(None, test_data)
+
+        mock_bleak_client.start_notify = AsyncMock(side_effect=mock_start_notify)
+        mock_bleak_client.stop_notify = AsyncMock()
+
+        # Replace the client
+        grill_probe.client = mock_bleak_client
+
+        async with grill_probe:
+            meat_temp, grill_temp = await grill_probe.read_temperature()
+
+        # Verify pairing was called
+        mock_bleak_client.pair.assert_called_once()
+
+        # Verify temperature reading succeeded
+        assert meat_temp == EXPECTED_MEAT_TEMP
+        assert grill_temp == EXPECTED_GRILL_TEMP
+
+    @pytest.mark.asyncio
+    async def test_read_temperature_fails_if_pairing_fails(
+        self, grill_probe, mock_bleak_client
+    ):
+        """Test that temperature reading fails immediately if pairing fails."""
+        from bleak.exc import BleakDBusError
+
+        # Mock pairing failure
+        mock_bleak_client.pair = AsyncMock(
+            side_effect=BleakDBusError("org.bluez.Error.Failed", "Pairing failed")
+        )
+
+        # Replace the client
+        grill_probe.client = mock_bleak_client
+
+        async with grill_probe:
+            meat_temp, grill_temp = await grill_probe.read_temperature()
+
+        # Should fail immediately - return None for both temperatures
+        assert meat_temp is None
+        assert grill_temp is None
+
+        # Verify pairing was attempted
+        mock_bleak_client.pair.assert_called_once()
+
+    @pytest.mark.asyncio
+    async def test_read_temperature_handles_already_paired(
+        self, grill_probe, mock_bleak_client
+    ):
+        """Test graceful handling when device is already paired."""
+        from bleak.exc import BleakDBusError
+
+        # Mock "already paired" error
+        mock_bleak_client.pair = AsyncMock(
+            side_effect=BleakDBusError(
+                "org.bluez.Error.AlreadyExists", "Already paired"
+            )
+        )
+
+        # Mock services and notification
+        mock_services = MagicMock()
+        mock_service = MagicMock()
+        mock_char = MagicMock()
+
+        mock_bleak_client.services = mock_services
+        mock_services.get_service.return_value = mock_service
+        mock_service.get_characteristic.return_value = mock_char
+
+        # Mock notification with valid data
+        test_data = bytes([0xFF, 0xFF, 0xA8, 0x02, 0xC6, 0x02, 0x0C])
+
+        async def mock_start_notify(_uuid, callback):
+            callback(None, test_data)
+
+        mock_bleak_client.start_notify = AsyncMock(side_effect=mock_start_notify)
+        mock_bleak_client.stop_notify = AsyncMock()
+
+        # Replace the client
+        grill_probe.client = mock_bleak_client
+
+        async with grill_probe:
+            meat_temp, grill_temp = await grill_probe.read_temperature()
+
+        # Should succeed - already paired is not an error
+        assert meat_temp == EXPECTED_MEAT_TEMP
+        assert grill_temp == EXPECTED_GRILL_TEMP
+
+    @pytest.mark.asyncio
+    async def test_read_temperature_handles_permission_error(
+        self, grill_probe, mock_bleak_client
+    ):
+        """Test handling of NotPermitted error during pairing."""
+        from bleak.exc import BleakDBusError
+
+        # Mock permission denied error
+        mock_bleak_client.pair = AsyncMock(
+            side_effect=BleakDBusError(
+                "org.bluez.Error.NotPermitted", "Operation not permitted"
+            )
+        )
+
+        # Replace the client
+        grill_probe.client = mock_bleak_client
+
+        async with grill_probe:
+            meat_temp, grill_temp = await grill_probe.read_temperature()
+
+        # Should fail immediately
+        assert meat_temp is None
+        assert grill_temp is None
+
+        # Verify pairing was attempted
+        mock_bleak_client.pair.assert_called_once()

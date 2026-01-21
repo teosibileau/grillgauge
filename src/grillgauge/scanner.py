@@ -77,7 +77,18 @@ class DeviceScanner:
             logger.error(f"Device not found: {device.address}: {e}")
             return
         except BleakDBusError as e:
-            logger.error(f"D-Bus error for {device.address}: {e}")
+            error_msg = str(e)
+
+            # Check for permission/pairing errors that indicate bluetooth-agent issues
+            if "NotPermitted" in error_msg or "NotAuthorized" in error_msg:
+                logger.error(
+                    "Permission denied for %s. This usually means the device requires pairing. "
+                    "Ensure bluetooth-agent service is running: "
+                    "sudo systemctl status bluetooth-agent",
+                    device.address,
+                )
+            else:
+                logger.error("D-Bus error for %s: %s", device.address, e)
             return
         except BleakError as e:
             logger.error(f"BLE error for {device.address}: {e}")

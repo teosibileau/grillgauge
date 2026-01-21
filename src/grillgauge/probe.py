@@ -1,6 +1,7 @@
 import asyncio
 
 from bleak import BleakClient
+from bleak.exc import BleakDBusError
 
 from .config import BLE_CONNECTION_TIMEOUT, DATA_SERVICE, TEMP_CHARACTERISTIC, logger
 
@@ -54,12 +55,41 @@ class GrillProbe:
         # Fallback to generated name
         return f"grillprobeE_{self.device_address[-4:]}"
 
-    async def read_temperature(self) -> tuple[float | None, float | None]:
+    async def read_temperature(self) -> tuple[float | None, float | None]:  # noqa: PLR0911
         """Read current temperature via BLE notifications."""
+
+        # Attempt pairing before reading notifications
+        # This is required for devices that restrict notifications to paired clients
+        try:
+            await self.client.pair()
+            logger.info("Successfully paired with device %s", self.device_address)
+        except BleakDBusError as e:
+            error_msg = str(e)
+
+            # Check if device is already paired (not an error)
+            if "AlreadyExists" in error_msg or "Already paired" in error_msg:
+                logger.info("Device %s already paired", self.device_address)
+            else:
+                # Pairing failed - this is a fatal error in strict mode
+                logger.warning(
+                    "Pairing failed for %s: %s. "
+                    "Ensure bluetooth-agent service is running: "
+                    "sudo systemctl status bluetooth-agent",
+                    self.device_address,
+                    e,
+                )
+                return None, None  # FAIL IMMEDIATELY
+        except Exception as e:
+            # Unexpected pairing error - fail immediately
+            logger.warning(
+                "Unexpected pairing error for %s: %s", self.device_address, e
+            )
+            return None, None  # FAIL IMMEDIATELY
+
         try:
             services = self.client.services
         except Exception as e:
-            logger.error(f"Failed to get services: {e}")
+            logger.error("Failed to get services: %s", e)
             return None, None
 
         data_svc = services.get_service(DATA_SERVICE)
