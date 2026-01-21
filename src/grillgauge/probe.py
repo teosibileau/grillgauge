@@ -17,10 +17,21 @@ class GrillProbe:
     TEMP_DIVISOR = 10.0
     TEMP_OFFSET = 40.0
 
-    def __init__(self, device_address: str):
-        """Initialize probe with BLE device address."""
-        self.device_address = device_address
-        self.client = BleakClient(device_address, timeout=BLE_CONNECTION_TIMEOUT)
+    def __init__(self, device_or_address):
+        """Initialize probe with BLE device object or address string.
+
+        Args:
+            device_or_address: Either a BLEDevice object from BleakScanner (recommended for Pi)
+                              or a string address (works on Mac, may timeout on Pi/BlueZ)
+        """
+        if isinstance(device_or_address, str):
+            # Address string - backward compatibility, works on Mac
+            self.device_address = device_or_address
+            self.client = BleakClient(device_or_address, timeout=BLE_CONNECTION_TIMEOUT)
+        else:
+            # BLEDevice object from scanner - required for reliable Pi connections
+            self.device_address = device_or_address.address
+            self.client = BleakClient(device_or_address, timeout=BLE_CONNECTION_TIMEOUT)
 
     async def __aenter__(self):
         """Async context manager entry - connect to device."""

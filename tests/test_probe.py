@@ -28,6 +28,20 @@ class TestGrillProbe:
         assert grill_probe.device_address == "AA:BB:CC:DD:EE:FF"
         assert grill_probe.client is not None
 
+    def test_grill_probe_initialization_with_device_object(self):
+        """Test GrillProbe initializes with BLEDevice object from scanner."""
+        # Mock BLEDevice object (what BleakScanner.discover() returns)
+        mock_device = MagicMock()
+        mock_device.address = "BB:CC:DD:EE:FF:AA"
+        mock_device.name = "BBQ ProbeE 12345"
+
+        # Initialize with device object
+        probe = GrillProbe(mock_device)
+
+        # Should extract address from device object
+        assert probe.device_address == "BB:CC:DD:EE:FF:AA"
+        assert probe.client is not None
+
     @pytest.mark.asyncio
     async def test_context_manager_connection(self, grill_probe, mock_bleak_client):
         """Test context manager connects and disconnects properly."""

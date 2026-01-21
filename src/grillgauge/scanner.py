@@ -57,7 +57,7 @@ class DeviceScanner:
 
         # Use GrillProbe to read temperature data
         try:
-            async with GrillProbe(device.address) as probe:
+            async with GrillProbe(device) as probe:
                 logger.info(f"Processing device: {device.address}")
 
                 # Read temperature data via notifications
