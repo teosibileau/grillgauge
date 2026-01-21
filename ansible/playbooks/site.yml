@@ -27,6 +27,7 @@
         enabled: true
       loop:
         - bluetooth
+        - bluetooth-agent
         - grillgauge
         - grillgauge-scan.timer
         - prometheus
@@ -36,6 +37,7 @@
       command: systemctl status {{ item }} --no-pager -l
       loop:
         - bluetooth
+        - bluetooth-agent
         - grillgauge
         - grillgauge-scan.timer
         - prometheus

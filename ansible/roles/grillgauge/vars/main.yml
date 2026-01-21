@@ -9,3 +9,9 @@ grillgauge_scan_frequency_minutes: 1
 # BLE scan timeout duration (in seconds)
 # How long to wait for BLE devices to respond during each scan
 grillgauge_scan_timeout_seconds: 10
+
+# Bluetooth agent configuration
+# The bluetooth-agent service enables automatic pairing for BLE devices
+# It implements the org.bluez.Agent1 D-Bus interface with NoInputNoOutput capability
+# This allows grillgauge to pair with thermometer probes without user interaction
+# Service automatically restarts when grillgauge code is updated

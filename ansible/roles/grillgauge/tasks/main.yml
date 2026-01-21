@@ -21,6 +21,9 @@
     dest: /opt/grillgauge/src/
     owner: "{{ ansible_user | default('root') }}"
     group: "{{ ansible_user | default('root') }}"
+  notify:
+    - restart bluetooth-agent
+    - restart grillgauge
 
 - name: Copy Python requirements file
   copy:
@@ -39,6 +42,36 @@
   command: /opt/grillgauge/venv/bin/pip install -r /opt/grillgauge/requirements.txt
   args:
     chdir: /opt/grillgauge
+
+- name: Install bluetooth-agent systemd service
+  template:
+    src: bluetooth-agent.service.j2
+    dest: /etc/systemd/system/bluetooth-agent.service
+    mode: '0644'
+  when: ansible_facts['os_family'] == "Debian"
+  notify: restart bluetooth-agent
+
+- name: Enable and start bluetooth-agent service
+  systemd:
+    name: bluetooth-agent
+    enabled: yes
+    state: started
+    daemon_reload: yes
+  when: ansible_facts['os_family'] == "Debian"
+
+- name: Check bluetooth-agent service status
+  command: systemctl status bluetooth-agent --no-pager
+  register: bluetooth_agent_status
+  changed_when: false
+  failed_when: false
+  when: ansible_facts['os_family'] == "Debian"
+
+- name: Display bluetooth-agent service status
+  debug:
+    msg: "{{ bluetooth_agent_status.stdout_lines }}"
+  when:
+    - ansible_facts['os_family'] == "Debian"
+    - bluetooth_agent_status.stdout_lines is defined
 
 - name: Create .env file
   template:
