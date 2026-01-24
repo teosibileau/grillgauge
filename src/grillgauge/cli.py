@@ -2,38 +2,12 @@ import asyncio
 
 import click
 
-from .config import logger
-from .scanner import DeviceScanner
 from .server import serve_server
 
 
 @click.group()
 def main():
     """GrillGauge CLI tool for BLE meat probe monitoring."""
-
-
-@main.command()
-@click.option("--timeout", default=10.0, help="Scan timeout in seconds.")
-def scan(timeout):
-    """Automatically scan and classify BLE devices."""
-    scanner = DeviceScanner(timeout=timeout)
-
-    async def run_scan():
-        devices = await scanner()
-
-        probes = [d for d in devices if d["classification"] == "probe"]
-        ignored = [d for d in devices if d["classification"] == "ignored"]
-
-        logger.info(
-            f"Scan complete: {len(probes)} probes added, {len(ignored)} devices ignored"
-        )
-
-        if probes:
-            logger.info("New probes:")
-            for probe in probes:
-                logger.info(f"  - {probe['name']} ({probe['address']})")
-
-    asyncio.run(run_scan())
 
 
 @main.command()
@@ -44,7 +18,7 @@ def scan(timeout):
 )
 @click.option("--port", default=8000, type=int, help="HTTP server port.")
 def serve(host: str, port: int):
-    """Start Prometheus metrics server for grillprobeE devices."""
+    """Start Prometheus metrics server with automatic device discovery."""
     asyncio.run(serve_server(host=host, port=port))
 
 

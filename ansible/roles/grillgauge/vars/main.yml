@@ -1,0 +1,8 @@
+---
+# GrillGauge configuration
+
+# Bluetooth agent configuration
+# The bluetooth-agent service enables automatic pairing for BLE devices
+# It implements the org.bluez.Agent1 D-Bus interface with NoInputNoOutput capability
+# This allows grillgauge to pair with thermometer probes without user interaction
+# Service automatically restarts when grillgauge code is updated

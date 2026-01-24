@@ -91,3 +91,80 @@ class TestMetricsCollector:
             collector.probe_names.get("FF:FF:FF:99:99:99", "unknown-probe")
             == "unknown-probe"
         )
+
+    def test_initialization_without_custom_registry(self, mock_env_manager):
+        """Test initialization uses default REGISTRY if none provided."""
+        from prometheus_client import REGISTRY
+
+        collector = MetricsCollector()
+
+        # Should use default registry
+        assert collector.registry == REGISTRY
+
+    def test_update_metrics_none_values_no_previous(
+        self, mock_env_manager, custom_registry
+    ):
+        """Test updating metrics with None when no previous values exist."""
+        collector = MetricsCollector(registry=custom_registry)
+
+        # Update with None values (no previous data)
+        collector.update_probe_metrics(
+            device_address="AA:BB:CC:11:22:33",
+            meat_temp=None,
+            grill_temp=None,
+            status=0,
+        )
+
+        # Should set to 0 when no previous value
+        # Device should not be in last_values or have empty dict
+        assert (
+            "AA:BB:CC:11:22:33" not in collector.last_values
+            or "meat_temp" not in collector.last_values.get("AA:BB:CC:11:22:33", {})
+        )
+
+    def test_gauge_creation_with_existing_metrics(
+        self, mock_env_manager, custom_registry
+    ):
+        """Test initialization when metrics already exist in registry."""
+        from prometheus_client import Gauge
+
+        # Pre-create metrics in registry
+        Gauge(
+            "grillgauge_meat_temperature_celsius",
+            "Meat probe temperature",
+            ["device_address", "probe_name"],
+            registry=custom_registry,
+        )
+
+        # Should reuse existing metric instead of creating new one
+        collector = MetricsCollector(registry=custom_registry)
+
+        # Should not raise ValueError
+        assert collector.meat_temp_gauge is not None
+
+    def test_partial_temperature_update(self, mock_env_manager, custom_registry):
+        """Test updating only meat temp or only grill temp."""
+        collector = MetricsCollector(registry=custom_registry)
+
+        # Update only meat temp
+        collector.update_probe_metrics(
+            device_address="AA:BB:CC:11:22:33",
+            meat_temp=65.0,
+            grill_temp=None,
+            status=1,
+        )
+
+        # Meat temp should be stored
+        assert collector.last_values["AA:BB:CC:11:22:33"]["meat_temp"] == 65.0  # noqa: PLR2004
+
+        # Now update only grill temp
+        collector.update_probe_metrics(
+            device_address="AA:BB:CC:11:22:33",
+            meat_temp=None,
+            grill_temp=220.0,
+            status=1,
+        )
+
+        # Both should be in last_values
+        assert collector.last_values["AA:BB:CC:11:22:33"]["meat_temp"] == 65.0  # noqa: PLR2004
+        assert collector.last_values["AA:BB:CC:11:22:33"]["grill_temp"] == 220.0  # noqa: PLR2004

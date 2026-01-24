@@ -1,0 +1,14 @@
+---
+# Bluetooth role configuration
+
+# Allow bluetooth service to fail gracefully in environments without hardware
+# Set to false to make bluetooth service failures fatal (strict mode)
+# Set to true to allow provisioning to continue even if bluetooth hardware is unavailable
+bluetooth_allow_failure: true
+
+# Additional BlueZ packages to install (optional)
+# Uncomment to add bluetooth utilities and tools
+# bluetooth_extra_packages:
+#   - bluez-tools      # Additional Bluetooth utilities
+#   - bluez-obexd      # OBEX daemon for file transfers
+#   - bluez-cups       # CUPS printer backend

@@ -127,3 +127,8 @@ dmypy.json
 
 # Pyre type checker
 .pyre/
+
+requirements.txt
+
+# Ansible production inventory (contains host details and SSH key paths)
+ansible/inventory/production.ini

@@ -1,0 +1,89 @@
+---
+- name: Install Bluetooth (BlueZ) packages
+  apt:
+    name:
+      - bluez
+      - bluetooth
+      - libbluetooth-dev
+      - python3-dbus
+      - python3-gi
+    state: present
+    update_cache: yes
+  when: ansible_facts['os_family'] == "Debian"
+
+- name: Ensure D-Bus service is running
+  systemd:
+    name: dbus
+    state: started
+    enabled: yes
+  when: ansible_facts['os_family'] == "Debian"
+
+- name: Ensure bluetooth service is enabled and started
+  systemd:
+    name: bluetooth
+    enabled: yes
+    state: started
+  when: ansible_facts['os_family'] == "Debian"
+  register: bluetooth_service_result
+  ignore_errors: "{{ bluetooth_allow_failure | default(true) }}"
+
+- name: Check bluetooth service status
+  command: systemctl status bluetooth --no-pager
+  register: bluetooth_status
+  changed_when: false
+  failed_when: false
+  when: ansible_facts['os_family'] == "Debian"
+
+- name: Display bluetooth service status
+  debug:
+    msg: "{{ bluetooth_status.stdout_lines }}"
+  when:
+    - ansible_facts['os_family'] == "Debian"
+    - bluetooth_status.stdout_lines is defined
+
+- name: Warn if bluetooth service failed to start
+  debug:
+    msg: "WARNING: Bluetooth service failed to start. This is expected in environments without Bluetooth hardware (e.g., Docker containers). BLE functionality will not be available."
+  when:
+    - bluetooth_service_result is defined
+    - bluetooth_service_result.failed | default(false)
+
+- name: Unblock Bluetooth adapter via rfkill
+  command: rfkill unblock bluetooth
+  changed_when: false
+  when: ansible_facts['os_family'] == "Debian"
+
+- name: Power on Bluetooth adapter (hci0)
+  command: hciconfig hci0 up
+  changed_when: false
+  failed_when: false
+  when: ansible_facts['os_family'] == "Debian"
+
+- name: Create bluetooth-rfkill systemd service
+  copy:
+    content: |
+      [Unit]
+      Description=Unblock and power on Bluetooth adapter
+      After=bluetooth.service
+      Wants=bluetooth.service
+
+      [Service]
+      Type=oneshot
+      ExecStart=/usr/sbin/rfkill unblock bluetooth
+      ExecStart=/usr/bin/hciconfig hci0 up
+      RemainAfterExit=yes
+
+      [Install]
+      WantedBy=multi-user.target
+    dest: /etc/systemd/system/bluetooth-rfkill.service
+    mode: '0644'
+  when: ansible_facts['os_family'] == "Debian"
+  notify: reload systemd
+
+- name: Enable and start bluetooth-rfkill service
+  systemd:
+    name: bluetooth-rfkill
+    enabled: yes
+    state: started
+    daemon_reload: yes
+  when: ansible_facts['os_family'] == "Debian"

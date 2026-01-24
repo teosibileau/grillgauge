@@ -1,0 +1,9 @@
+---
+# GrillGauge default configuration
+# These can be overridden in inventory files
+
+# Metrics server network configuration
+# Default: bind to localhost only for security
+# Override in inventory to bind to all interfaces (0.0.0.0) for network access
+grillgauge_server_host: "127.0.0.1"
+grillgauge_server_port: 8000

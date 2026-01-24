@@ -1,0 +1,63 @@
+---
+- name: Create system Rust directories
+  file:
+    path: "{{ item }}"
+    state: directory
+    mode: '0755'
+  loop:
+    - /opt/rust
+    - /opt/rust/cargo
+    - /opt/rust/rustup
+  when: ansible_facts.os_family == "Debian"
+
+- name: Install Rust toolchain
+  block:
+    - name: Update package cache
+      apt:
+        update_cache: yes
+
+    - name: Install Rust dependencies
+      apt:
+        name:
+          - curl
+          - build-essential
+          - pkg-config
+          - libssl-dev
+        state: present
+
+    - name: Install Rust toolchain
+      shell: curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y --no-modify-path
+      args:
+        creates: /opt/rust/cargo/bin/rustc
+      environment:
+        CARGO_HOME: /opt/rust/cargo
+        RUSTUP_HOME: /opt/rust/rustup
+
+    - name: Add Rust to system PATH via profile.d
+      copy:
+        content: |
+          # Add Rust cargo binaries to PATH
+          export PATH="/opt/rust/cargo/bin:$PATH"
+        dest: /etc/profile.d/rust.sh
+        mode: '0644'
+  when: ansible_facts.os_family == "Debian"
+
+- name: Install grafatui
+  command: /opt/rust/cargo/bin/cargo install grafatui --root /usr/local
+  environment:
+    CARGO_HOME: /opt/rust/cargo
+    RUSTUP_HOME: /opt/rust/rustup
+  args:
+    creates: /usr/local/bin/grafatui
+
+- name: Create grafatui configuration directory
+  file:
+    path: /etc/grafatui
+    state: directory
+    mode: '0755'
+
+- name: Configure grafatui
+  template:
+    src: config.yml.j2
+    dest: /etc/grafatui/config.yml
+    mode: '0644'

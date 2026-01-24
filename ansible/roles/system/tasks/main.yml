@@ -1,0 +1,65 @@
+---
+- name: Check if running in container
+  debug:
+    msg: "Detected {{ ansible_facts['virtualization_type'] | default('bare metal') }} environment"
+
+- name: Skip locale configuration in containers
+  debug:
+    msg: "Skipping locale configuration (not needed in container environments)"
+  when: ansible_facts['virtualization_type'] | default('') == 'docker'
+
+- name: Install locales package
+  apt:
+    name: locales
+    state: present
+    update_cache: yes
+  when:
+    - ansible_facts['os_family'] == "Debian"
+    - ansible_facts['virtualization_type'] | default('') != 'docker'
+
+- name: Generate locale
+  locale_gen:
+    name: "{{ system_locale }}"
+    state: present
+  when:
+    - ansible_facts['os_family'] == "Debian"
+    - ansible_facts['virtualization_type'] | default('') != 'docker'
+
+- name: Set system default locale
+  copy:
+    content: |
+      LANG={{ system_locale }}
+      LC_ALL={{ system_locale }}
+      LANGUAGE={{ system_locale }}
+    dest: /etc/default/locale
+    mode: '0644'
+  when:
+    - ansible_facts['os_family'] == "Debian"
+    - ansible_facts['virtualization_type'] | default('') != 'docker'
+
+- name: Update environment locale
+  lineinfile:
+    path: /etc/environment
+    regexp: '^{{ item.key }}='
+    line: '{{ item.key }}={{ item.value }}'
+    create: yes
+  loop:
+    - { key: 'LANG', value: "{{ system_locale }}" }
+    - { key: 'LC_ALL', value: "{{ system_locale }}" }
+  when:
+    - ansible_facts['os_family'] == "Debian"
+    - ansible_facts['virtualization_type'] | default('') != 'docker'
+
+- name: Check current locale configuration (Raspberry Pi only)
+  command: locale
+  register: locale_status
+  changed_when: false
+  failed_when: false
+  when: ansible_facts['virtualization_type'] | default('') != 'docker'
+
+- name: Display locale status
+  debug:
+    msg: "{{ locale_status.stdout_lines }}"
+  when:
+    - locale_status is defined
+    - locale_status.stdout_lines is defined

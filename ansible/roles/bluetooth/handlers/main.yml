@@ -1,0 +1,12 @@
+---
+- name: restart bluetooth
+  systemd:
+    name: bluetooth
+    state: restarted
+    daemon_reload: yes
+  when: ansible_facts['os_family'] == "Debian"
+  ignore_errors: yes
+
+- name: reload systemd
+  systemd:
+    daemon_reload: yes

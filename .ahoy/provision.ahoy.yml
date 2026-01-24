@@ -1,0 +1,129 @@
+ahoyapi: v2
+commands:
+  freeze:
+    usage: Freeze python requirements to txt
+    cmd: |
+      echo "📦 Freezing python dependencies to requirements.txt..."
+      poetry export --without-hashes --format requirements.txt > requirements.txt
+      echo "✅ Requirements frozen successfully!"
+
+  setup:
+    usage: Interactive setup for production Raspberry Pi inventory
+    cmd: |
+      echo "🔧 GrillGauge Production Setup"
+      echo "================================"
+      echo ""
+
+      # Check if production.ini exists
+      if [ -f ansible/inventory/production.ini ]; then
+        echo "⚠️  production.ini already exists!"
+        read -p "Overwrite? (y/N): " overwrite
+        if [[ ! $overwrite =~ ^[yY]$ ]]; then
+          echo "🚫 Setup cancelled."
+          exit 0
+        fi
+      fi
+
+      # Verify SSH key exists
+      if [ ! -f ~/.ssh/id_rsa ]; then
+        echo "❌ ERROR: SSH private key not found at ~/.ssh/id_rsa"
+        echo ""
+        echo "Please generate an SSH key first:"
+        echo "  ssh-keygen -t rsa -b 4096"
+        echo ""
+        echo "Then copy it to your Raspberry Pi:"
+        echo "  ssh-copy-id pi@<raspberry-pi-ip>"
+        exit 1
+      fi
+
+      echo "Raspberry Pi connection details:"
+      echo ""
+
+      # Prompt for IP/hostname
+      read -p "IP address or hostname: " HOST
+      if [ -z "$HOST" ]; then
+        echo "❌ ERROR: IP/hostname is required!"
+        exit 1
+      fi
+
+      # Prompt for username
+      read -p "SSH username [pi]: " USER
+      USER=${USER:-pi}
+
+      # Hostname identifier (auto-generate from host)
+      HOSTNAME=$(echo "$HOST" | sed 's/[^a-zA-Z0-9-]/-/g')
+
+      # Ask about sudo
+      echo ""
+      echo "Sudo configuration:"
+      echo "  1) Passwordless sudo (recommended)"
+      echo "  2) Ask for sudo password at runtime"
+      read -p "Choose [1/2]: " sudo_method
+
+      if [ "$sudo_method" = "1" ]; then
+        SUDO_CONFIG="# Passwordless sudo configured on target"
+      else
+        SUDO_CONFIG="# Will prompt for sudo password\n# Deploy uses --ask-become-pass"
+      fi
+
+      # Generate production.ini
+      echo ""
+      echo "📝 Generating ansible/inventory/production.ini..."
+
+      sed -e "s|{{HOSTNAME}}|$HOSTNAME|g" \
+          -e "s|{{HOST}}|$HOST|g" \
+          -e "s|{{USER}}|$USER|g" \
+          -e "s|{{SUDO_CONFIG}}|$SUDO_CONFIG|g" \
+          ansible/inventory/production.ini.template > ansible/inventory/production.ini
+
+      echo "✅ Created successfully!"
+      echo ""
+      echo "🎉 Setup complete!"
+      echo ""
+      echo "Next: ahoy provision deploy"
+
+  test:
+    usage: Provision the test ARM64 container
+    cmd: |
+      ahoy provision freeze
+      echo "🐳 Starting Ansible provisioning of test container..."
+      cd ansible && ansible-playbook -i inventory/docker.ini playbooks/site.yml
+
+  deploy:
+    usage: Deploy to Raspberry Pi production device
+    cmd: |
+      if [ ! -f ansible/inventory/production.ini ]; then
+        echo "❌ ERROR: production.ini not found"
+        echo "Run: ahoy provision setup"
+        exit 1
+      fi
+
+      ahoy provision freeze
+
+      echo "⚠️  DEPLOYING TO PRODUCTION ⚠️"
+      echo ""
+      grep "ansible_host=" ansible/inventory/production.ini | head -1
+      echo ""
+      read -p "Continue? (y/N): " confirm
+
+      if [[ ! $confirm =~ ^[yY]$ ]]; then
+        echo "🚫 Deployment cancelled."
+        exit 0
+      fi
+
+      # Check if needs sudo password
+      echo "🚀 Deploying to Raspberry Pi..."
+      if grep -q "ask-become-pass" ansible/inventory/production.ini; then
+        cd ansible && ansible-playbook -i inventory/production.ini playbooks/site.yml --ask-become-pass
+      else
+        cd ansible && ansible-playbook -i inventory/production.ini playbooks/site.yml
+      fi
+
+  status:
+    usage: Check provisioning status
+    cmd: |
+      echo "📊 === Container Status ==="
+      ahoy docker ps
+      echo ""
+      echo "🔍 === Service Status ==="
+      ahoy docker exec arm64-test systemctl status grillgauge prometheus grafatui --no-pager -l || echo "⚠️  Container not running"
