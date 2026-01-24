@@ -81,32 +81,6 @@
     group: "{{ ansible_user | default('root') }}"
     mode: '0600'
 
-# Cleanup old scan timer/service (consolidated into main service)
-- name: Stop old grillgauge-scan timer (if exists)
-  systemd:
-    name: grillgauge-scan.timer
-    state: stopped
-    enabled: no
-  ignore_errors: yes
-  when: ansible_facts['os_family'] == "Debian"
-
-- name: Remove old grillgauge-scan timer unit file
-  file:
-    path: /etc/systemd/system/grillgauge-scan.timer
-    state: absent
-  when: ansible_facts['os_family'] == "Debian"
-
-- name: Remove old grillgauge-scan service unit file
-  file:
-    path: /etc/systemd/system/grillgauge-scan.service
-    state: absent
-  when: ansible_facts['os_family'] == "Debian"
-
-- name: Reload systemd daemon after cleanup
-  systemd:
-    daemon_reload: yes
-  when: ansible_facts['os_family'] == "Debian"
-
 - name: Install systemd service
   template:
     src: grillgauge.service.j2
