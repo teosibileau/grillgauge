@@ -10,6 +10,7 @@ from .config import SCAN_INTERVAL_SECONDS, logger
 from .env import EnvManager
 from .metrics import MetricsCollector
 from .probe import GrillProbe
+from .scanner import DeviceScanner
 
 
 class MetricsServer:
@@ -52,7 +53,10 @@ class MetricsServer:
 
         logger.debug(f"Found {len(probes)} configured probes")
         if not probes:
-            logger.warning("No probes configured - run 'grillgauge scan' first")
+            logger.warning(
+                "No probes configured - discovery runs once on service startup. "
+                "Restart service to re-scan for devices."
+            )
             return
 
         for probe_config in probes:
@@ -86,8 +90,24 @@ class MetricsServer:
                 )
                 logger.warning(f"Failed to read {probe_name} ({device_address}): {e}")
 
+    async def _discover_new_devices(self):
+        """Discover and register new grillprobeE devices."""
+        logger.info("Running device discovery scan...")
+        try:
+            scanner = DeviceScanner(timeout=10.0)
+            devices = await scanner()
+
+            probes = [d for d in devices if d["classification"] == "probe"]
+            logger.info(f"Discovery complete: found {len(probes)} new probes")
+
+            if probes:
+                for probe in probes:
+                    logger.info(f"  - {probe['name']} ({probe['address']})")
+        except Exception as e:
+            logger.error(f"Device discovery failed: {e}")
+
     async def _background_scan_loop(self):
-        """Background task that periodically scans all probes."""
+        """Background task that periodically reads temperatures from all configured probes."""
         logger.info(
             f"Starting background probe scanning (every {SCAN_INTERVAL_SECONDS}s)"
         )
@@ -102,7 +122,13 @@ class MetricsServer:
 
     async def start(self):
         """Start the server and background scanning."""
-        # Start background scanning task
+        # Run one-time device discovery on startup BEFORE starting monitoring
+        # This ensures discovery completes before any BLE monitoring begins
+        logger.info("Running one-time device discovery on startup...")
+        await asyncio.sleep(5)  # Avoid startup race condition with Bluetooth
+        await self._discover_new_devices()
+
+        # Start background scanning task AFTER discovery completes
         self.scan_task = asyncio.create_task(self._background_scan_loop())
 
         # Start HTTP server

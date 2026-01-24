@@ -1,4 +1,5 @@
 import asyncio
+import sys
 
 from bleak import BleakClient
 from bleak.exc import BleakDBusError
@@ -58,33 +59,40 @@ class GrillProbe:
     async def read_temperature(self) -> tuple[float | None, float | None]:  # noqa: PLR0911
         """Read current temperature via BLE notifications."""
 
-        # Attempt pairing before reading notifications
-        # This is required for devices that restrict notifications to paired clients
-        try:
-            await self.client.pair()
-            logger.info("Successfully paired with device %s", self.device_address)
-        except BleakDBusError as e:
-            error_msg = str(e)
+        # Skip pairing on macOS (Core Bluetooth doesn't support manual pairing)
+        # Only attempt pairing on Linux where BlueZ is available
+        if sys.platform != "darwin":
+            # Attempt pairing before reading notifications
+            # This is required for devices that restrict notifications to paired clients
+            try:
+                await self.client.pair()
+                logger.info("Successfully paired with device %s", self.device_address)
+            except BleakDBusError as e:
+                error_msg = str(e)
 
-            # Check if device is already paired (not an error)
-            if "AlreadyExists" in error_msg or "Already paired" in error_msg:
-                logger.info("Device %s already paired", self.device_address)
-            else:
-                # Pairing failed - this is a fatal error in strict mode
+                # Check if device is already paired (not an error)
+                if "AlreadyExists" in error_msg or "Already paired" in error_msg:
+                    logger.info("Device %s already paired", self.device_address)
+                else:
+                    # Pairing failed - this is a fatal error in strict mode
+                    logger.warning(
+                        "Pairing failed for %s: %s. "
+                        "Ensure bluetooth-agent service is running: "
+                        "sudo systemctl status bluetooth-agent",
+                        self.device_address,
+                        e,
+                    )
+                    return None, None  # FAIL IMMEDIATELY
+            except Exception as e:
+                # Unexpected pairing error - fail immediately
                 logger.warning(
-                    "Pairing failed for %s: %s. "
-                    "Ensure bluetooth-agent service is running: "
-                    "sudo systemctl status bluetooth-agent",
-                    self.device_address,
-                    e,
+                    "Unexpected pairing error for %s: %s", self.device_address, e
                 )
                 return None, None  # FAIL IMMEDIATELY
-        except Exception as e:
-            # Unexpected pairing error - fail immediately
-            logger.warning(
-                "Unexpected pairing error for %s: %s", self.device_address, e
+        else:
+            logger.debug(
+                "Skipping pairing on macOS (Core Bluetooth handles pairing automatically)"
             )
-            return None, None  # FAIL IMMEDIATELY
 
         try:
             services = self.client.services

@@ -33,6 +33,25 @@ class TestMetricsServer:
             mock_probe.return_value.__aexit__.return_value = None
             yield mock_probe
 
+    @pytest.fixture
+    def mock_device_scanner(self):
+        """Mock DeviceScanner for testing."""
+        with patch("grillgauge.server.DeviceScanner") as mock_scanner:
+            mock_instance = AsyncMock()
+            mock_instance.return_value = [
+                {
+                    "address": "DD:EE:FF:00:11:22",
+                    "name": "grillprobeE_11:22",
+                    "classification": "probe",
+                    "capabilities": {
+                        "meat_temperature": 25.0,
+                        "grill_temperature": 30.0,
+                    },
+                }
+            ]
+            mock_scanner.return_value = mock_instance
+            yield mock_scanner
+
     def test_server_initialization(self, custom_registry):
         """Test MetricsServer initialization."""
         server = MetricsServer(host="127.0.0.1", port=9000, registry=custom_registry)
@@ -82,3 +101,47 @@ class TestMetricsServer:
         routes = [str(route) for route in app.router.routes()]
         assert any("/metrics" in route for route in routes)
         assert any("/health" in route for route in routes)
+
+    @pytest.mark.asyncio
+    async def test_discover_new_devices_success(
+        self, mock_device_scanner, custom_registry
+    ):
+        """Test successful device discovery."""
+        server = MetricsServer(host="127.0.0.1", registry=custom_registry)
+
+        await server._discover_new_devices()
+
+        # Verify scanner was called
+        mock_device_scanner.assert_called_once()
+        # Verify scanner instance was awaited
+        mock_device_scanner.return_value.assert_awaited_once()
+
+    @pytest.mark.asyncio
+    async def test_discover_new_devices_failure(self, custom_registry):
+        """Test device discovery with scanner failure."""
+        with patch("grillgauge.server.DeviceScanner") as mock_scanner:
+            # Simulate scanner failure
+            mock_instance = AsyncMock()
+            mock_instance.side_effect = Exception("BLE discovery failed")
+            mock_scanner.return_value = mock_instance
+
+            server = MetricsServer(host="127.0.0.1", registry=custom_registry)
+
+            # Should not raise, just log error
+            await server._discover_new_devices()
+
+            mock_scanner.assert_called_once()
+
+    @pytest.mark.asyncio
+    async def test_discover_new_devices_no_probes(self, custom_registry):
+        """Test device discovery when no new probes found."""
+        with patch("grillgauge.server.DeviceScanner") as mock_scanner:
+            # Return empty list (no probes)
+            mock_instance = AsyncMock()
+            mock_instance.return_value = []
+            mock_scanner.return_value = mock_instance
+
+            server = MetricsServer(host="127.0.0.1", registry=custom_registry)
+            await server._discover_new_devices()
+
+            mock_scanner.assert_called_once()

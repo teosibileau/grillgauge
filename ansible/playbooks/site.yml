@@ -29,7 +29,6 @@
         - bluetooth
         - bluetooth-agent
         - grillgauge
-        - grillgauge-scan.timer
         - prometheus
       ignore_errors: true
 
@@ -39,7 +38,6 @@
         - bluetooth
         - bluetooth-agent
         - grillgauge
-        - grillgauge-scan.timer
         - prometheus
       ignore_errors: true
       changed_when: false

@@ -7,7 +7,7 @@ A CLI tool for monitoring BLE meat probes with support for grillprobeE devices. 
 - Automatic grillprobeE device detection and configuration
 - Real-time temperature monitoring for meat and grill probes
 - Prometheus-compatible metrics server for monitoring integration
-- Automated periodic BLE device scanning (every 5 minutes)
+- One-time BLE device discovery on service startup
 - Ansible-based deployment to Raspberry Pi
 - Systemd service management for production reliability
 - Colored logging output for better readability
@@ -48,8 +48,8 @@ A CLI tool for monitoring BLE meat probes with support for grillprobeE devices. 
    This will:
    - Install Python, BlueZ (Bluetooth stack), and all dependencies
    - Deploy the grillgauge application to `/opt/grillgauge`
-   - Set up systemd services for metrics server and periodic scanning
-   - Configure automatic device discovery every 5 minutes
+   - Set up systemd service for metrics server
+   - Configure one-time device discovery on service startup
 
 5. **Verify deployment**:
    ```bash
@@ -111,7 +111,9 @@ poetry run grillgauge serve --port 8000
 poetry run grillgauge serve --host 0.0.0.0 --port 8000
 ```
 
-Starts an HTTP server that exposes grillprobeE temperature metrics for Prometheus monitoring. The server runs background scans every 30 seconds and serves metrics at `/metrics`.
+Starts an HTTP server that exposes grillprobeE temperature metrics for Prometheus monitoring. The server continuously polls temperatures from all configured probes every 10 seconds and serves metrics at `/metrics`.
+
+**Note:** Device discovery runs once on service startup. To discover new devices, restart the service.
 
 **Security Note**: By default, the server binds to `127.0.0.1` (localhost only) for security. Use `--host 0.0.0.0` only when you need Prometheus to scrape metrics from a different machine on your network.
 
@@ -154,6 +156,24 @@ PROBE_LAST_SEEN=2025-01-09T12:34:56.789012+00:00
 
 Designed specifically for FMG SH253B grillprobeE thermometers.
 
+## Discovery vs Monitoring
+
+GrillGauge uses two separate processes:
+
+### Device Discovery (One-Time on Startup)
+- Runs automatically when the `grillgauge` service starts
+- Scans for new BLE devices and registers them to `.env`
+- Takes approximately 10-20 seconds to complete
+- **To discover new devices**: Restart the service with `sudo systemctl restart grillgauge`
+
+### Temperature Monitoring (Continuous)
+- Polls temperatures from all configured probes every 10 seconds
+- Publishes metrics to Prometheus endpoint at `/metrics`
+- Runs continuously in the background after discovery completes
+- Maintains last known good values during temporary connection failures
+
+**Note**: Device discovery is intentionally separated from temperature monitoring to avoid BLE conflicts and ensure stable operation.
+
 ## Deployment Architecture
 
 GrillGauge is deployed to Raspberry Pi using Ansible and runs as systemd services:
@@ -164,11 +184,7 @@ GrillGauge is deployed to Raspberry Pi using Ansible and runs as systemd service
    - Runs `grillgauge serve` on port 8000
    - Exposes Prometheus metrics at `/metrics`
    - Auto-starts on boot
-
-2. **grillgauge-scan.timer** - Periodic device discovery
-   - Scans for new BLE devices every 5 minutes
-   - First scan runs 2 minutes after boot
-   - Logs available via `journalctl -u grillgauge-scan`
+   - Performs one-time device discovery on startup
 
 ### Ansible Provisioning
 
@@ -200,12 +216,7 @@ ahoy provision freeze
 
 #### Configuration
 
-Ansible variables can be customized in `ansible/roles/grillgauge/vars/main.yml`:
-
-```yaml
-grillgauge_scan_frequency_minutes: 5  # Scan interval
-grillgauge_scan_timeout_seconds: 10   # Scan duration
-```
+The grillgauge service is configured via environment variables in `/opt/grillgauge/.env`. Device discovery runs automatically once on service startup.
 
 ### Monitoring on Raspberry Pi
 
@@ -213,12 +224,11 @@ grillgauge_scan_timeout_seconds: 10   # Scan duration
 # View metrics server logs
 journalctl -u grillgauge -f
 
-# View scan service logs
-journalctl -u grillgauge-scan -f
+# Check service status
+systemctl status grillgauge
 
-# Check timer status
-systemctl status grillgauge-scan.timer
-systemctl list-timers grillgauge-scan.timer
+# Restart service (triggers device discovery)
+sudo systemctl restart grillgauge
 
 # Check Bluetooth status
 systemctl status bluetooth

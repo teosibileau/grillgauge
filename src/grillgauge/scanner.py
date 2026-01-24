@@ -11,6 +11,8 @@ from .probe import GrillProbe
 class DeviceScanner:
     # Constants for scanner behavior
     DEFAULT_SCAN_TIMEOUT = 10.0
+    MAX_RETRIES = 3
+    RETRY_DELAY = 2.0
 
     def __init__(self, timeout: float = DEFAULT_SCAN_TIMEOUT):
         self.env_manager = EnvManager()
@@ -21,17 +23,82 @@ class DeviceScanner:
         await self._scan_grillprobee_devices()
         return self.devices
 
+    async def _restart_bluetooth_service(self):
+        """Restart bluetooth service to clear stale discovery locks."""
+        logger.warning("Restarting bluetooth service to clear BLE state...")
+        try:
+            # Restart bluetooth service
+            proc = await asyncio.create_subprocess_exec(
+                "systemctl",
+                "restart",
+                "bluetooth",
+                stdout=asyncio.subprocess.PIPE,
+                stderr=asyncio.subprocess.PIPE,
+            )
+            await proc.wait()
+
+            # Wait for bluetooth to fully restart
+            await asyncio.sleep(3)
+            logger.info("Bluetooth service restarted successfully")
+        except Exception as e:
+            logger.error(f"Failed to restart bluetooth service: {e}")
+            raise
+
     async def _scan_grillprobee_devices(self):
         logger.info("Scanning for grillprobeE devices...")
 
-        # BLE discovery is the main failure point for system-level issues
-        try:
-            devices = await BleakScanner.discover(
-                timeout=self.timeout, service_uuids=[DATA_SERVICE]
-            )
-        except Exception as e:
-            logger.error(f"BLE discovery failed: {e}")
-            return
+        # Initialize devices to empty list
+        devices = []
+
+        # Retry logic to handle BlueZ stale discovery locks
+        # This works around a known BlueZ bug where discovery sessions aren't properly cleaned up
+        for attempt in range(self.MAX_RETRIES):
+            try:
+                devices = await BleakScanner.discover(
+                    timeout=self.timeout, service_uuids=[DATA_SERVICE]
+                )
+                # Success - break out of retry loop
+                break
+
+            except Exception as e:
+                error_msg = str(e)
+
+                # Check if this is the InProgress error
+                if (
+                    "InProgress" in error_msg
+                    or "Operation already in progress" in error_msg
+                ):
+                    if attempt < self.MAX_RETRIES - 1:
+                        # Retry after delay
+                        logger.warning(
+                            f"BLE discovery in progress (attempt {attempt + 1}/{self.MAX_RETRIES}), "
+                            f"retrying in {self.RETRY_DELAY}s..."
+                        )
+                        await asyncio.sleep(self.RETRY_DELAY)
+                        continue
+                    # Final attempt - restart bluetooth service
+                    logger.error(
+                        f"BLE discovery still in progress after {self.MAX_RETRIES} retries, "
+                        "restarting bluetooth service as last resort..."
+                    )
+                    try:
+                        await self._restart_bluetooth_service()
+
+                        # Try one final time after bluetooth restart
+                        devices = await BleakScanner.discover(
+                            timeout=self.timeout, service_uuids=[DATA_SERVICE]
+                        )
+                        # Success after restart
+                        break
+                    except Exception as restart_error:
+                        logger.error(
+                            f"BLE discovery failed even after bluetooth restart: {restart_error}"
+                        )
+                        return
+                else:
+                    # Different error - log and return
+                    logger.error(f"BLE discovery failed: {e}")
+                    return
 
         # Rest of logic is safe and device processing has its own error handling
         if not devices:
