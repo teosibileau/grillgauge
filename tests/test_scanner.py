@@ -126,14 +126,15 @@ class TestDeviceScanner:
     @pytest.mark.asyncio
     async def test_process_device_success(self, scanner, mock_device):
         """Test successful device processing and registration."""
-        with patch("grillgauge.scanner.GrillProbe") as mock_probe_class:
+        with (
+            patch("grillgauge.scanner.GrillProbe") as mock_probe_class,
+            patch("grillgauge.scanner.asyncio.sleep", new_callable=AsyncMock),
+        ):
             # Configure mock for successful connection and temperature read
             mock_probe = AsyncMock()
-            mock_probe.read_temperature = AsyncMock(
-                return_value=(EXPECTED_MEAT_TEMP, EXPECTED_GRILL_TEMP)
-            )
-            mock_probe.__aenter__.return_value = mock_probe
-            mock_probe.__aexit__.return_value = None
+            mock_probe.connect = AsyncMock(return_value=True)
+            mock_probe.disconnect = AsyncMock()
+            mock_probe.last_temperature = (EXPECTED_MEAT_TEMP, EXPECTED_GRILL_TEMP)
             mock_probe_class.return_value = mock_probe
 
             # Process device
@@ -155,12 +156,15 @@ class TestDeviceScanner:
     @pytest.mark.asyncio
     async def test_process_device_failed_temperature_read(self, scanner, mock_device):
         """Test device processing when temperature read returns None."""
-        with patch("grillgauge.scanner.GrillProbe") as mock_probe_class:
-            # Configure mock to return None temperatures (read failure)
+        with (
+            patch("grillgauge.scanner.GrillProbe") as mock_probe_class,
+            patch("grillgauge.scanner.asyncio.sleep", new_callable=AsyncMock),
+        ):
+            # Configure mock to return None temperatures (no data received)
             mock_probe = AsyncMock()
-            mock_probe.read_temperature = AsyncMock(return_value=(None, None))
-            mock_probe.__aenter__.return_value = mock_probe
-            mock_probe.__aexit__.return_value = None
+            mock_probe.connect = AsyncMock(return_value=True)
+            mock_probe.disconnect = AsyncMock()
+            mock_probe.last_temperature = (None, None)  # No temperature data
             mock_probe_class.return_value = mock_probe
 
             # Process device
@@ -178,14 +182,15 @@ class TestDeviceScanner:
         mock_device.name = None
         mock_device.local_name = None
 
-        with patch("grillgauge.scanner.GrillProbe") as mock_probe_class:
+        with (
+            patch("grillgauge.scanner.GrillProbe") as mock_probe_class,
+            patch("grillgauge.scanner.asyncio.sleep", new_callable=AsyncMock),
+        ):
             # Configure mock for successful connection
             mock_probe = AsyncMock()
-            mock_probe.read_temperature = AsyncMock(
-                return_value=(EXPECTED_MEAT_TEMP, EXPECTED_GRILL_TEMP)
-            )
-            mock_probe.__aenter__.return_value = mock_probe
-            mock_probe.__aexit__.return_value = None
+            mock_probe.connect = AsyncMock(return_value=True)
+            mock_probe.disconnect = AsyncMock()
+            mock_probe.last_temperature = (EXPECTED_MEAT_TEMP, EXPECTED_GRILL_TEMP)
             mock_probe_class.return_value = mock_probe
 
             # Process device
@@ -231,14 +236,13 @@ class TestDeviceScanner:
                 return_value=[mock_device1, mock_device2],
             ),
             patch("grillgauge.scanner.GrillProbe") as mock_probe_class,
+            patch("grillgauge.scanner.asyncio.sleep", new_callable=AsyncMock),
         ):
             # Configure mock probe
             mock_probe = AsyncMock()
-            mock_probe.read_temperature = AsyncMock(
-                return_value=(EXPECTED_MEAT_TEMP, EXPECTED_GRILL_TEMP)
-            )
-            mock_probe.__aenter__.return_value = mock_probe
-            mock_probe.__aexit__.return_value = None
+            mock_probe.connect = AsyncMock(return_value=True)
+            mock_probe.disconnect = AsyncMock()
+            mock_probe.last_temperature = (EXPECTED_MEAT_TEMP, EXPECTED_GRILL_TEMP)
             mock_probe_class.return_value = mock_probe
 
             # Run scan
@@ -289,11 +293,9 @@ class TestDeviceScanner:
         ):
             # Configure mock probe
             mock_probe = AsyncMock()
-            mock_probe.read_temperature = AsyncMock(
-                return_value=(EXPECTED_MEAT_TEMP, EXPECTED_GRILL_TEMP)
-            )
-            mock_probe.__aenter__.return_value = mock_probe
-            mock_probe.__aexit__.return_value = None
+            mock_probe.connect = AsyncMock(return_value=True)
+            mock_probe.disconnect = AsyncMock()
+            mock_probe.last_temperature = (EXPECTED_MEAT_TEMP, EXPECTED_GRILL_TEMP)
             mock_probe_class.return_value = mock_probe
 
             # Run scan

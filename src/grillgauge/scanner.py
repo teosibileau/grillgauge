@@ -110,7 +110,7 @@ class DeviceScanner:
         for device in devices:
             await self._process_device(device)
 
-    async def _process_device(self, device):
+    async def _process_device(self, device):  # noqa: PLR0912, PLR0911
         # Get device name from advertisement data
         device_name = getattr(device, "name", None) or getattr(
             device, "local_name", None
@@ -123,17 +123,31 @@ class DeviceScanner:
             logger.info(f"Using generated device name: {device_name}")
 
         # Use GrillProbe to read temperature data
+        probe = None
         try:
-            async with GrillProbe(device) as probe:
-                logger.info(f"Processing device: {device.address}")
+            logger.info(f"Processing device: {device.address}")
 
-                # Read temperature data via notifications
-                meat_temp, grill_temp = await probe.read_temperature()
-                if meat_temp is None and grill_temp is None:
-                    logger.error(
-                        f"Failed to read temperature data from {device.address}"
-                    )
-                    return
+            # Create probe and connect (subscribes to notifications)
+            probe = GrillProbe(device)
+            connected = await probe.connect()
+
+            if not connected:
+                logger.error(f"Failed to establish connection to {device.address}")
+                return
+
+            # Wait for first notification to arrive (notifications come ~every 12 seconds)
+            # We'll wait up to 15 seconds for initial data
+            for _ in range(15):
+                await asyncio.sleep(1)
+                meat_temp, grill_temp = probe.last_temperature
+                if meat_temp is not None or grill_temp is not None:
+                    break
+            else:
+                # No data received after 15 seconds
+                logger.error(
+                    f"No temperature data received from {device.address} after 15s"
+                )
+                return
 
         except asyncio.TimeoutError:
             logger.error(
@@ -166,6 +180,10 @@ class DeviceScanner:
                 f"{type(e).__name__}: {e or 'Unknown error'}"
             )
             return
+        finally:
+            # Always disconnect after testing
+            if probe is not None:
+                await probe.disconnect()
 
         logger.info(f"Meat temp: {meat_temp:.1f}°C, Grill temp: {grill_temp:.1f}°C")
 
