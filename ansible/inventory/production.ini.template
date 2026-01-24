@@ -11,3 +11,8 @@
 [grillgauge_servers:vars]
 ansible_python_interpreter=/usr/bin/python3
 {{SUDO_CONFIG}}
+
+# GrillGauge metrics server configuration
+# Bind to all network interfaces for Prometheus scraping
+grillgauge_server_host=0.0.0.0
+grillgauge_server_port=8000

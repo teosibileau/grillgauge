@@ -115,7 +115,22 @@ Starts an HTTP server that exposes grillprobeE temperature metrics for Prometheu
 
 **Note:** Device discovery runs once on service startup. To discover new devices, restart the service.
 
-**Security Note**: By default, the server binds to `127.0.0.1` (localhost only) for security. Use `--host 0.0.0.0` only when you need Prometheus to scrape metrics from a different machine on your network.
+#### Network Configuration
+
+**Development/Manual Use:**
+- Default: `--host 127.0.0.1` (localhost only, secure)
+- Network access: `--host 0.0.0.0` (all interfaces)
+
+**Production Deployment (Raspberry Pi):**
+- Configured via Ansible to bind to `0.0.0.0` by default
+- This allows Prometheus to scrape metrics from other machines on the network
+- Customize in `ansible/inventory/production.ini`:
+  ```ini
+  grillgauge_server_host=0.0.0.0  # Network-wide access
+  grillgauge_server_port=8000     # Metrics port
+  ```
+
+**Security Note**: By default, the CLI binds to `127.0.0.1` (localhost only) for security. Production deployments via Ansible bind to `0.0.0.0` to allow Prometheus to scrape metrics from other machines on your network.
 
 #### Metrics Endpoints
 

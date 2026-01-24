@@ -8,7 +8,7 @@ Type=simple
 User=root
 WorkingDirectory=/opt/grillgauge
 Environment=PATH=/opt/grillgauge/venv/bin:/usr/local/bin:/usr/bin:/bin
-ExecStart=/opt/grillgauge/venv/bin/python -m src.grillgauge.cli serve --host 127.0.0.1 --port 8000
+ExecStart=/opt/grillgauge/venv/bin/python -m src.grillgauge.cli serve --host {{ grillgauge_server_host }} --port {{ grillgauge_server_port }}
 Restart=always
 RestartSec=5
 
