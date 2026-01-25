@@ -1,6 +1,0 @@
----
-- name: restart grafatui
-  systemd:
-    name: grafatui
-    state: restarted
-    daemon_reload: yes

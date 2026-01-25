@@ -126,4 +126,4 @@ commands:
       ahoy docker ps
       echo ""
       echo "🔍 === Service Status ==="
-      ahoy docker exec arm64-test systemctl status grillgauge prometheus grafatui --no-pager -l || echo "⚠️  Container not running"
+      ahoy docker exec arm64-test systemctl status grillgauge prometheus --no-pager -l || echo "⚠️  Container not running"
