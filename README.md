@@ -69,7 +69,7 @@ GrillGauge includes a beautiful terminal dashboard built with [Sampler](https://
 
 ```bash
 # From your local machine (SSH into Raspberry Pi)
-ssh teo@grillgauge -t "grillgauge-dashboard"
+ssh <pi_user>@<pi_host> -t "grillgauge-dashboard"
 ```
 
 The dashboard wrapper script automatically:
