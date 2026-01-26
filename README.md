@@ -2,16 +2,21 @@
 
 A CLI tool for monitoring BLE meat probes with support for grillprobeE devices. Designed to run on Raspberry Pi with automated deployment via Ansible.
 
+![GrillGauge Dashboard](.assets/dashboard-screenshot.png)
+
+*Real-time monitoring dashboard showing temperature trends, weather conditions, and system health*
+
 ## Features
 
-- Automatic grillprobeE device detection and configuration
-- Real-time temperature monitoring for meat and grill probes
-- Prometheus-compatible metrics server for monitoring integration
-- One-time BLE device discovery on service startup
-- Ansible-based deployment to Raspberry Pi
-- Systemd service management for production reliability
-- Colored logging output for better readability
-- Simple configuration management
+- **Real-time Temperature Monitoring**: Track meat and grill probe temperatures with sparkline visualizations
+- **Terminal Dashboard**: Beautiful TUI dashboard using Sampler with live weather, service stats, and temperature trends
+- **Automatic Device Detection**: grillprobeE device discovery and configuration on service startup
+- **Prometheus Integration**: Metrics server for monitoring and alerting
+- **Weather Integration**: Auto-location weather data via Open-Meteo API
+- **Ansible Deployment**: Automated deployment to Raspberry Pi with systemd service management
+- **Resource Monitoring**: Track CPU, memory, and uptime for all services
+- **Bluetooth Stack**: Complete BlueZ configuration with automated pairing
+- **Fault Tolerance**: Maintains last known good values during temporary connection failures
 
 ## Quick Start
 
@@ -55,6 +60,82 @@ A CLI tool for monitoring BLE meat probes with support for grillprobeE devices. 
    ```bash
    ahoy provision status
    ```
+
+## Dashboard
+
+GrillGauge includes a beautiful terminal dashboard built with [Sampler](https://github.com/sqshq/sampler) for real-time monitoring.
+
+### Launching the Dashboard
+
+```bash
+# From your local machine (SSH into Raspberry Pi)
+ssh teo@grillgauge -t "grillgauge-dashboard"
+```
+
+The dashboard wrapper script automatically:
+- Checks that required services are running (grillgauge, prometheus)
+- Launches the Sampler TUI with the GrillGauge configuration
+- Displays live temperature trends, weather, and system health
+
+### Dashboard Features
+
+The dashboard displays four main widgets:
+
+1. **Local Weather** (updates every 10 minutes)
+   - Current temperature and feels-like temperature
+   - Humidity, wind speed, and direction
+   - Precipitation, cloud cover, and weather status
+   - Auto-detects location via IP geolocation
+   - Data from Open-Meteo API
+
+2. **Service Resource Usage** (updates every 5 seconds)
+   - CPU and memory usage for grillgauge and prometheus services
+   - Process IDs and uptime
+   - Memory usage in MB
+
+3. **Meat Temperature** (updates every 15 seconds)
+   - Sparkline chart showing temperature trend
+   - Real-time data from Prometheus
+
+4. **Grill Temperature** (updates every 15 seconds)
+   - Sparkline chart showing temperature trend
+   - Real-time data from Prometheus
+
+### Dashboard Controls
+
+- **`q`** - Quit the dashboard
+- **`Ctrl+C`** - Force exit
+
+### Dashboard Configuration
+
+The dashboard configuration is managed via Ansible templates:
+- **Config**: `ansible/roles/sampler/templates/grillgauge.yml.j2`
+- **Weather Script**: `ansible/roles/sampler/templates/fetch-weather.sh.j2`
+- **Service Stats Script**: `ansible/roles/sampler/templates/fetch-service-stats.sh.j2`
+- **Wrapper**: `ansible/roles/sampler/templates/wrapper.sh.j2`
+
+All scripts use Python with the `tabulate` library for consistent, professional table formatting with `simple` style (minimal borders, clean alignment).
+
+### Customizing Refresh Rates
+
+Edit the Sampler config template to adjust update frequencies:
+
+```yaml
+# ansible/roles/sampler/templates/grillgauge.yml.j2
+textboxes:
+  - title: Local weather
+    rate-ms: 600000    # 10 minutes (600,000 ms)
+  - title: Service Resource Usage
+    rate-ms: 5000      # 5 seconds
+
+sparklines:
+  - title: Meat (°C)
+    rate-ms: 15000     # 15 seconds
+  - title: Grill (°C)
+    rate-ms: 15000     # 15 seconds
+```
+
+After editing, redeploy with `ahoy provision deploy`.
 
 ## Installation
 
@@ -201,14 +282,20 @@ GrillGauge is deployed to Raspberry Pi using Ansible and runs as systemd service
    - Auto-starts on boot
    - Performs one-time device discovery on startup
 
+2. **prometheus.service** - Metrics collection and storage
+   - Scrapes metrics from grillgauge service
+   - Provides query API for dashboard
+   - Web UI available on port 9090
+   - Auto-starts on boot
+
 ### Ansible Provisioning
 
 The deployment uses Ansible roles:
 
-- **bluetooth** - Installs and configures BlueZ Bluetooth stack
+- **bluetooth** - Installs and configures BlueZ Bluetooth stack with automated pairing
 - **grillgauge** - Deploys application and systemd services
-- **prometheus** - (Optional) Prometheus server setup
-- **grafana** - (Optional) Grafana dashboard setup
+- **prometheus** - Prometheus server setup for metrics collection and querying
+- **sampler** - Installs Sampler dashboard with custom weather and service monitoring scripts
 
 #### Ahoy Commands
 
@@ -262,3 +349,136 @@ poetry run pytest --cov=grillgauge
 
 ### Code Quality
 Uses Ruff for linting and formatting, Pytest for testing, and Poetry for dependency management.
+
+## Technology Stack
+
+### Application
+- **Python 3.13** - Core application language
+- **Bleak** - Cross-platform BLE library for device communication
+- **aiohttp** - Async HTTP server for Prometheus metrics
+- **prometheus_client** - Metrics exposition
+- **coloredlogs** - Enhanced logging output
+
+### Dashboard & Monitoring
+- **Sampler** - Terminal-based dashboard framework (Go)
+- **Python scripts** - Custom data fetchers for weather and service stats
+- **tabulate** - Professional table formatting library
+- **Open-Meteo API** - Free weather data (no API key required)
+- **Prometheus** - Metrics storage and querying
+
+### Infrastructure
+- **Raspberry Pi OS (64-bit)** - Production runtime environment
+- **BlueZ** - Linux Bluetooth protocol stack
+- **systemd** - Service management and auto-start
+- **Ansible** - Infrastructure as code, automated provisioning
+- **Ahoy** - Task runner for deployment commands
+
+### Development Tools
+- **Poetry** - Dependency management and packaging
+- **Ruff** - Fast Python linter and formatter
+- **Pytest** - Testing framework
+- **Docker** - Ansible playbook testing environment
+
+## Troubleshooting
+
+### Dashboard Issues
+
+**Dashboard won't launch:**
+```bash
+# Check if Sampler is installed
+ssh teo@grillgauge "which sampler"
+
+# Check if services are running
+ssh teo@grillgauge "systemctl status grillgauge prometheus"
+
+# Restart services if needed
+ssh teo@grillgauge "sudo systemctl restart grillgauge prometheus"
+```
+
+**Weather data shows "unavailable":**
+```bash
+# Test weather script directly
+ssh teo@grillgauge "/usr/local/bin/grillgauge-weather"
+
+# Check internet connectivity
+ssh teo@grillgauge "curl -s http://ip-api.com/json/"
+```
+
+**Temperature sparklines show zeros:**
+```bash
+# Check if grillgauge service is running
+ssh teo@grillgauge "systemctl status grillgauge"
+
+# Verify Prometheus has data
+ssh teo@grillgauge "curl -s 'http://localhost:9090/api/v1/query?query=grillgauge_meat_temperature_celsius'"
+
+# Check grillgauge logs
+ssh teo@grillgauge "journalctl -u grillgauge -n 50"
+```
+
+**Service stats not updating:**
+```bash
+# Test service stats script directly
+ssh teo@grillgauge "/usr/local/bin/grillgauge-service-stats"
+
+# Check if python3-tabulate is installed
+ssh teo@grillgauge "python3 -c 'import tabulate; print(tabulate.__version__)'"
+```
+
+### Bluetooth Issues
+
+**Device not connecting:**
+```bash
+# Check Bluetooth status
+ssh teo@grillgauge "systemctl status bluetooth"
+
+# Scan for devices manually
+ssh teo@grillgauge "bluetoothctl scan on"
+
+# Check grillgauge logs for connection errors
+ssh teo@grillgauge "journalctl -u grillgauge -f"
+```
+
+**Re-discover devices:**
+```bash
+# Restart grillgauge service (triggers device discovery)
+ssh teo@grillgauge "sudo systemctl restart grillgauge"
+
+# Watch logs during discovery
+ssh teo@grillgauge "journalctl -u grillgauge -f"
+```
+
+### Prometheus Issues
+
+**Metrics not appearing:**
+```bash
+# Check Prometheus status
+ssh teo@grillgauge "systemctl status prometheus"
+
+# Verify metrics endpoint
+ssh teo@grillgauge "curl -s http://localhost:8000/metrics | grep grillgauge"
+
+# Check Prometheus targets
+# Open browser to: http://<raspberry-pi-ip>:9090/targets
+```
+
+### General Debugging
+
+**View all service logs:**
+```bash
+# Tail all logs
+ssh teo@grillgauge "journalctl -f -u grillgauge -u prometheus -u bluetooth"
+
+# Show recent errors
+ssh teo@grillgauge "journalctl -p err -n 50"
+```
+
+**Check disk space:**
+```bash
+ssh teo@grillgauge "df -h"
+```
+
+**Redeploy everything:**
+```bash
+ahoy provision deploy
+```
