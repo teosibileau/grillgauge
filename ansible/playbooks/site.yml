@@ -17,7 +17,7 @@
     - bluetooth
     - grillgauge
     - prometheus
-    # grafatui removed - replaced with sampler (to be added)
+    - sampler
 
   post_tasks:
     - name: Verify services are running

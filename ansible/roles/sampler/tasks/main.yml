@@ -1,0 +1,159 @@
+---
+# Install prerequisites for building Sampler from source
+- name: Install prerequisite packages
+  apt:
+    name:
+      - git
+      - build-essential
+      - curl
+      - libasound2-dev
+      - python3-tabulate
+    state: present
+    update_cache: yes
+  become: yes
+  when: ansible_facts.os_family == "Debian"
+
+# Install Go toolchain (required for building Sampler)
+- name: Check if Go is already installed
+  stat:
+    path: /usr/local/go/bin/go
+  register: go_binary
+
+- name: Download Go {{ go_version }} for ARM64
+  get_url:
+    url: "{{ go_url }}"
+    dest: "/tmp/{{ go_archive }}"
+    checksum: "{{ go_checksum }}"
+  become: yes
+  when: not go_binary.stat.exists
+
+- name: Extract Go archive
+  unarchive:
+    src: "/tmp/{{ go_archive }}"
+    dest: "{{ go_install_dir }}"
+    remote_src: yes
+  become: yes
+  when: not go_binary.stat.exists
+
+- name: Add Go to system PATH
+  copy:
+    content: |
+      # Go programming language
+      export PATH="/usr/local/go/bin:$PATH"
+    dest: /etc/profile.d/golang.sh
+    mode: '0644'
+  become: yes
+
+- name: Cleanup Go archive
+  file:
+    path: "/tmp/{{ go_archive }}"
+    state: absent
+  become: yes
+  when: not go_binary.stat.exists
+
+- name: Verify Go installation
+  command: /usr/local/go/bin/go version
+  register: go_version_output
+  changed_when: false
+
+- name: Display Go version
+  debug:
+    msg: "Go installed: {{ go_version_output.stdout }}"
+
+# Build Sampler from source
+- name: Check if Sampler binary exists
+  stat:
+    path: "{{ sampler_bin_path }}"
+  register: sampler_binary
+
+- name: Clone Sampler repository
+  git:
+    repo: "{{ sampler_repo }}"
+    dest: "{{ sampler_build_dir }}"
+    version: master
+    depth: 1
+  when: not sampler_binary.stat.exists
+
+- name: Build Sampler
+  command: /usr/local/go/bin/go build -o sampler
+  args:
+    chdir: "{{ sampler_build_dir }}"
+  environment:
+    GOPATH: /tmp/go
+    GOCACHE: /tmp/go-cache
+  when: not sampler_binary.stat.exists
+
+- name: Install Sampler binary
+  copy:
+    src: "{{ sampler_build_dir }}/sampler"
+    dest: "{{ sampler_bin_path }}"
+    mode: '0755'
+    remote_src: yes
+  become: yes
+  when: not sampler_binary.stat.exists
+
+- name: Cleanup build directory
+  file:
+    path: "{{ item }}"
+    state: absent
+  loop:
+    - "{{ sampler_build_dir }}"
+    - /tmp/go
+    - /tmp/go-cache
+  when: not sampler_binary.stat.exists
+
+- name: Verify Sampler installation
+  command: "{{ sampler_bin_path }} --version"
+  register: sampler_version_output
+  changed_when: false
+  failed_when: false
+
+# Deploy dashboard configuration
+- name: Create Sampler config directory
+  file:
+    path: "{{ sampler_config_dir }}"
+    state: directory
+    mode: '0755'
+  become: yes
+
+- name: Deploy dashboard configuration
+  template:
+    src: grillgauge.yml.j2
+    dest: "{{ sampler_config_file }}"
+    mode: '0644'
+  become: yes
+
+- name: Deploy weather fetch script
+  template:
+    src: fetch-weather.sh.j2
+    dest: /usr/local/bin/grillgauge-weather
+    mode: '0755'
+  become: yes
+
+- name: Deploy service stats fetch script
+  template:
+    src: fetch-service-stats.sh.j2
+    dest: /usr/local/bin/grillgauge-service-stats
+    mode: '0755'
+  become: yes
+
+- name: Validate dashboard configuration
+  command: python3 -c 'import yaml; yaml.safe_load(open("{{ sampler_config_file }}"))'
+  changed_when: false
+
+# Create wrapper script for easy dashboard launching
+- name: Create wrapper script
+  template:
+    src: wrapper.sh.j2
+    dest: "{{ sampler_wrapper_script }}"
+    mode: '0755'
+  become: yes
+
+- name: Display usage instructions
+  debug:
+    msg: |
+      ✅ Sampler dashboard installed successfully!
+
+      To launch: ssh {{ ansible_user }}@{{ ansible_host }} -t "grillgauge-dashboard"
+      Config: {{ sampler_config_file }}
+      Binary: {{ sampler_bin_path }}

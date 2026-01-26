@@ -1,0 +1,22 @@
+# GrillGauge BBQ Temperature Monitoring Dashboard
+# Sampler configuration for visualizing Prometheus metrics
+# Documentation: https://github.com/sqshq/sampler
+
+
+textboxes:
+  - title: Local weather
+    rate-ms: 600000
+    sample: /usr/local/bin/grillgauge-weather
+  - title: Service Resource Usage
+    rate-ms: 5000
+    sample: /usr/local/bin/grillgauge-service-stats
+
+sparklines:
+  - title: Meat (°C)
+    rate-ms: 15000
+    scale: 0
+    sample: curl -s 'http://localhost:9090/api/v1/query?query=grillgauge_meat_temperature_celsius' | jq -r '.data.result[0].value[1] // "0"'
+  - title: Grill (°C)
+    rate-ms: 15000
+    scale: 0
+    sample: curl -s 'http://localhost:9090/api/v1/query?query=grillgauge_grill_temperature_celsius' | jq -r '.data.result[0].value[1] // "0"'

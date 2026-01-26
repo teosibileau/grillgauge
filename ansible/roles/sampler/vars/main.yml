@@ -1,0 +1,17 @@
+---
+# Go version and download info
+go_version: "1.25.6"
+go_archive: "go{{ go_version }}.linux-arm64.tar.gz"
+go_url: "https://go.dev/dl/{{ go_archive }}"
+go_install_dir: "/usr/local"
+go_checksum: "sha256:738ef87d79c34272424ccdf83302b7b0300b8b096ed443896089306117943dd5"
+
+# Sampler build info
+sampler_repo: "https://github.com/sqshq/sampler.git"
+sampler_build_dir: "/tmp/sampler"
+sampler_bin_path: "/usr/local/bin/sampler"
+
+# Config paths
+sampler_config_dir: "/etc/sampler"
+sampler_config_file: "{{ sampler_config_dir }}/grillgauge.yml"
+sampler_wrapper_script: "/usr/local/bin/grillgauge-dashboard"

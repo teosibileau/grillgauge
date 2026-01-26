@@ -1,0 +1,107 @@
+#!/usr/bin/env python3
+# Fetch weather data from Open-Meteo API with auto-location
+
+import json
+import subprocess
+import sys
+
+def get_location():
+    """Get location from IP address"""
+    try:
+        result = subprocess.run(
+            ['curl', '-s', 'http://ip-api.com/json/'],
+            capture_output=True,
+            text=True,
+            timeout=5
+        )
+        data = json.loads(result.stdout)
+        return data.get('lat'), data.get('lon')
+    except Exception:
+        return None, None
+
+def get_weather(lat, lon):
+    """Fetch weather data from Open-Meteo"""
+    try:
+        url = f"https://api.open-meteo.com/v1/forecast?latitude={lat}&longitude={lon}&current=temperature_2m,apparent_temperature,relative_humidity_2m,precipitation,cloud_cover,wind_speed_10m,wind_direction_10m,weather_code&wind_speed_unit=kmh"
+        result = subprocess.run(
+            ['curl', '-s', url],
+            capture_output=True,
+            text=True,
+            timeout=5
+        )
+        return json.loads(result.stdout)
+    except Exception:
+        return None
+
+def wmo_code_to_text(code):
+    """Convert WMO weather code to text"""
+    codes = {
+        0: "Clear",
+        1: "Partly Cloudy", 2: "Partly Cloudy", 3: "Partly Cloudy",
+        45: "Fog", 48: "Fog",
+        51: "Drizzle", 53: "Drizzle", 55: "Drizzle",
+        61: "Rain", 63: "Rain", 65: "Rain",
+        71: "Snow", 73: "Snow", 75: "Snow",
+        80: "Showers", 81: "Showers", 82: "Showers",
+        95: "Thunderstorm", 96: "Thunderstorm", 99: "Thunderstorm"
+    }
+    return codes.get(code, "Unknown")
+
+def wind_dir_to_text(degrees):
+    """Convert wind direction from degrees to cardinal"""
+    dirs = ["N", "NE", "E", "SE", "S", "SW", "W", "NW"]
+    idx = int((degrees + 22.5) / 45) % 8
+    return dirs[idx]
+
+def bold(text):
+    """Wrap text in ANSI bold escape codes"""
+    return f"\033[1m{text}\033[0m"
+
+def main():
+    # Get location
+    lat, lon = get_location()
+    if not lat or not lon:
+        print("Weather data unavailable (location error)")
+        return
+
+    # Get weather
+    weather = get_weather(lat, lon)
+    if not weather or 'current' not in weather:
+        print("Weather data unavailable (API error)")
+        return
+
+    current = weather['current']
+
+    # Format data as table
+    try:
+        from tabulate import tabulate
+
+        data = [
+            [
+                f"{bold('Temp')}: {current['temperature_2m']}°C",
+                f"{bold('Feels')}: {current['apparent_temperature']}°C",
+                f"{bold('Humidity')}: {current['relative_humidity_2m']}%",
+                f"{bold('Wind')}: {current['wind_speed_10m']} km/h"
+            ],
+            [
+                f"{bold('Direction')}: {wind_dir_to_text(current['wind_direction_10m'])}",
+                f"{bold('Precip')}: {current['precipitation']} mm",
+                f"{bold('Clouds')}: {current['cloud_cover']}%",
+                f"{bold('Status')}: {wmo_code_to_text(current['weather_code'])}"
+            ]
+        ]
+
+        print(tabulate(data, tablefmt="simple"))
+    except ImportError:
+        # Fallback if tabulate not installed
+        print(f"Temp: {current['temperature_2m']}°C")
+        print(f"Feels: {current['apparent_temperature']}°C")
+        print(f"Humidity: {current['relative_humidity_2m']}%")
+        print(f"Wind: {current['wind_speed_10m']} km/h")
+        print(f"Direction: {wind_dir_to_text(current['wind_direction_10m'])}")
+        print(f"Precip: {current['precipitation']} mm")
+        print(f"Clouds: {current['cloud_cover']}%")
+        print(f"Status: {wmo_code_to_text(current['weather_code'])}")
+
+if __name__ == "__main__":
+    main()
