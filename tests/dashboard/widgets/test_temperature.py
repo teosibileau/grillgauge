@@ -55,7 +55,7 @@ class TestTemperatureWidget:
         assert len(widget.data_points) == max_points
         assert list(widget.data_points) == expected_data_points
         assert widget.data == expected_data_points  # Original data without 0.0 baseline
-        assert widget.summary == "24.0°C"
+        assert widget.summary == "Meat: 24.0°C"
 
     @pytest.mark.asyncio
     @patch("grillgauge.dashboard.widgets.temperature.get_temperature_history")
@@ -73,7 +73,7 @@ class TestTemperatureWidget:
         expected_points = [0.0, 0.0, *partial_data]
         assert list(widget.data_points) == expected_points
         assert widget.data == expected_points  # Original data without extra 0.0
-        assert widget.summary == "24.0°C"
+        assert widget.summary == "Meat: 24.0°C"
 
     @pytest.mark.asyncio
     @patch("grillgauge.dashboard.widgets.temperature.get_temperature_history")
@@ -103,7 +103,7 @@ class TestTemperatureWidget:
         assert len(widget.data_points) == max_points
         assert list(widget.data_points) == [0.0, 0.0, 0.0]
         assert widget.data == [0.0, 0.0, 0.0]  # Original data without extra 0.0
-        assert widget.summary == "0.0°C"
+        assert widget.summary == "Meat: 0.0°C"
 
     @pytest.mark.asyncio
     @patch("grillgauge.dashboard.widgets.temperature.get_meat_temperature")
@@ -121,7 +121,7 @@ class TestTemperatureWidget:
         assert len(widget.data_points) == expected_length
         assert list(widget.data_points) == [50.0, 51.0, 52.0, 55.5]
         assert widget.data == [50.0, 51.0, 52.0, 55.5]  # Original data without 0.0
-        assert widget.summary == "55.5°C"
+        assert widget.summary == "Meat: 55.5°C"
 
     @pytest.mark.asyncio
     @patch("grillgauge.dashboard.widgets.temperature.get_grill_temperature")
@@ -138,7 +138,7 @@ class TestTemperatureWidget:
         assert len(widget.data_points) == expected_length
         assert list(widget.data_points) == [200.0, 210.0, 220.0, 225.0]
         assert widget.data == [200.0, 210.0, 220.0, 225.0]  # Original data without 0.0
-        assert widget.summary == "225.0°C"
+        assert widget.summary == "Grill: 225.0°C"
 
     @pytest.mark.asyncio
     @patch("grillgauge.dashboard.widgets.temperature.get_meat_temperature")
@@ -155,7 +155,7 @@ class TestTemperatureWidget:
         assert len(widget.data_points) == expected_length
         # Should use the last value when fetch fails
         assert list(widget.data_points) == [50.0, 51.0, 52.0, 52.0]
-        assert widget.summary == "52.0°C"
+        assert widget.summary == "Meat: 52.0°C"
 
     @pytest.mark.asyncio
     @patch("grillgauge.dashboard.widgets.temperature.get_meat_temperature")
@@ -169,7 +169,7 @@ class TestTemperatureWidget:
 
         assert len(widget.data_points) == 1
         assert list(widget.data_points) == [0.0]
-        assert widget.summary == "0.0°C"
+        assert widget.summary == "Meat: 0.0°C"
 
     def test_update_sparkline_empty_data(self):
         """Test update_sparkline with empty data points."""
@@ -188,7 +188,7 @@ class TestTemperatureWidget:
         widget.update_sparkline()
 
         assert widget.data == [10.0, 20.0, 30.0]  # Original data without 0.0 baseline
-        assert widget.summary == "30.0°C"
+        assert widget.summary == "Meat: 30.0°C"
 
     def test_update_sparkline_deque_behavior(self):
         """Test that deque maxlen is respected."""
@@ -204,7 +204,7 @@ class TestTemperatureWidget:
 
         widget.update_sparkline()
         assert widget.data == [2.0, 3.0, 4.0]  # Original data without extra 0.0
-        assert widget.summary == "4.0°C"
+        assert widget.summary == "Meat: 4.0°C"
 
 
 class TestMeatTemperatureWidget:

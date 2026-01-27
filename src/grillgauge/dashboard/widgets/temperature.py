@@ -125,9 +125,10 @@ class TemperatureWidget(Sparkline):
         # Set data directly (0°C baseline handled in custom renderable)
         self.data = raw_data
 
-        # Set summary with current temperature
+        # Set summary with series name and current temperature
+        series_name = self.temp_type.capitalize()  # "Meat" or "Grill"
         current = raw_data[-1]
-        self.summary = f"{current:.1f}°C"
+        self.summary = f"{series_name}: {current:.1f}°C"
 
     def render(self) -> RenderResult:
         """Render sparkline with forced 0°C baseline scaling."""
@@ -154,6 +155,7 @@ class TemperatureWidget(Sparkline):
             min_color=min_color.rich_color,
             max_color=max_color.rich_color,
             summary_function=self.summary_function,
+            summary=self.summary,
         )
 
 
