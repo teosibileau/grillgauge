@@ -54,21 +54,21 @@
 
 /* DataTable Styling */
 DataTable {
-    background: $surface;
+    background: transparent;
 }
 
 DataTable > .datatable--header {
     text-style: bold;
-    background: $primary-background;
+    background: transparent;
 }
 
 DataTable > .datatable--cursor {
-    background: $accent;
+    background: transparent;
 }
 
 /* Sparkline Styling */
 Sparkline {
-    background: $surface;
+    background: transparent;
 }
 
 /* Header and Footer */
