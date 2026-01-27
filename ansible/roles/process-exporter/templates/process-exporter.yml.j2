@@ -1,0 +1,11 @@
+{% raw %}process_names:
+  # Match grillgauge process by command line (it runs as python)
+  - name: "grillgauge"
+    cmdline:
+      - grillgauge
+
+  # Match prometheus by executable name
+  - name: "prometheus"
+    exe:
+      - prometheus
+{% endraw %}
