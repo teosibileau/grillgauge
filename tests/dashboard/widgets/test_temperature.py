@@ -54,7 +54,7 @@ class TestTemperatureWidget:
 
         assert len(widget.data_points) == max_points
         assert list(widget.data_points) == expected_data_points
-        assert widget.data == [0.0, *expected_data_points]  # 0 baseline prepended
+        assert widget.data == expected_data_points  # Original data without 0.0 baseline
         assert widget.summary == "24.0°C"
 
     @pytest.mark.asyncio
@@ -72,7 +72,7 @@ class TestTemperatureWidget:
         # Should be padded with zeros at the start
         expected_points = [0.0, 0.0, *partial_data]
         assert list(widget.data_points) == expected_points
-        assert widget.data == [0.0, *expected_points]
+        assert widget.data == expected_points  # Original data without extra 0.0
         assert widget.summary == "24.0°C"
 
     @pytest.mark.asyncio
@@ -102,7 +102,7 @@ class TestTemperatureWidget:
 
         assert len(widget.data_points) == max_points
         assert list(widget.data_points) == [0.0, 0.0, 0.0]
-        assert widget.data == [0.0, 0.0, 0.0, 0.0]
+        assert widget.data == [0.0, 0.0, 0.0]  # Original data without extra 0.0
         assert widget.summary == "0.0°C"
 
     @pytest.mark.asyncio
@@ -120,7 +120,7 @@ class TestTemperatureWidget:
 
         assert len(widget.data_points) == expected_length
         assert list(widget.data_points) == [50.0, 51.0, 52.0, 55.5]
-        assert widget.data == [0.0, 50.0, 51.0, 52.0, 55.5]
+        assert widget.data == [50.0, 51.0, 52.0, 55.5]  # Original data without 0.0
         assert widget.summary == "55.5°C"
 
     @pytest.mark.asyncio
@@ -137,7 +137,7 @@ class TestTemperatureWidget:
 
         assert len(widget.data_points) == expected_length
         assert list(widget.data_points) == [200.0, 210.0, 220.0, 225.0]
-        assert widget.data == [0.0, 200.0, 210.0, 220.0, 225.0]
+        assert widget.data == [200.0, 210.0, 220.0, 225.0]  # Original data without 0.0
         assert widget.summary == "225.0°C"
 
     @pytest.mark.asyncio
@@ -187,7 +187,7 @@ class TestTemperatureWidget:
 
         widget.update_sparkline()
 
-        assert widget.data == [0.0, 10.0, 20.0, 30.0]  # 0 baseline prepended
+        assert widget.data == [10.0, 20.0, 30.0]  # Original data without 0.0 baseline
         assert widget.summary == "30.0°C"
 
     def test_update_sparkline_deque_behavior(self):
@@ -203,7 +203,7 @@ class TestTemperatureWidget:
         assert list(widget.data_points) == [2.0, 3.0, 4.0]
 
         widget.update_sparkline()
-        assert widget.data == [0.0, 2.0, 3.0, 4.0]
+        assert widget.data == [2.0, 3.0, 4.0]  # Original data without extra 0.0
         assert widget.summary == "4.0°C"
 
 

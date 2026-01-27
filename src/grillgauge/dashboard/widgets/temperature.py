@@ -3,12 +3,16 @@
 from collections import deque
 from typing import Any
 
+from textual.app import RenderResult
 from textual.widgets import Sparkline
 
 from grillgauge.dashboard.data.probes import (
     get_grill_temperature,
     get_meat_temperature,
     get_temperature_history,
+)
+from grillgauge.dashboard.renderables.zero_baseline_sparkline import (
+    ZeroBaselineSparklineRenderable,
 )
 
 
@@ -111,27 +115,46 @@ class TemperatureWidget(Sparkline):
         self.update_sparkline()
 
     def update_sparkline(self) -> None:
-        """Update the sparkline with current data points.
-
-        Prepends a 0 to the data to ensure a baseline for the scale.
-        This makes temperature visible even when values don't vary,
-        as the sparkline will scale from 0 to the max temperature.
-        """
+        """Update the sparkline with current data points."""
         # Convert deque to list for Sparkline
         raw_data = list(self.data_points)
 
         if not raw_data:
             return
 
-        # Prepend 0 to establish baseline - ensures visibility even with flat data
-        display_data = [0.0, *raw_data]
-
-        # Update sparkline with baseline + data
-        self.data = display_data
+        # Set data directly (0°C baseline handled in custom renderable)
+        self.data = raw_data
 
         # Set summary with current temperature
         current = raw_data[-1]
         self.summary = f"{current:.1f}°C"
+
+    def render(self) -> RenderResult:
+        """Render sparkline with forced 0°C baseline scaling."""
+        data = self.data or []
+
+        # Get colors same as parent Sparkline
+        _, base = self.background_colors
+        min_color = base + (
+            self.get_component_styles("sparkline--min-color").color
+            if self.min_color is None
+            else self.min_color
+        )
+        max_color = base + (
+            self.get_component_styles("sparkline--max-color").color
+            if self.max_color is None
+            else self.max_color
+        )
+
+        # Use custom renderable with forced 0°C minimum
+        return ZeroBaselineSparklineRenderable(
+            data,
+            width=self.size.width,
+            height=self.size.height,
+            min_color=min_color.rich_color,
+            max_color=max_color.rich_color,
+            summary_function=self.summary_function,
+        )
 
 
 class MeatTemperatureWidget(TemperatureWidget):
