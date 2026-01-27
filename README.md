@@ -63,18 +63,18 @@ A CLI tool for monitoring BLE meat probes with support for grillprobeE devices. 
 
 ## Dashboard
 
-GrillGauge includes a beautiful terminal dashboard built with [Sampler](https://github.com/sqshq/sampler) for real-time monitoring.
+GrillGauge includes a beautiful terminal dashboard built with [Textual](https://textual.textualize.io/) for real-time monitoring.
 
 ### Launching the Dashboard
 
 ```bash
 # From your local machine (SSH into Raspberry Pi)
-ssh <pi_user>@<pi_host> -t "grillgauge-dashboard"
+ssh <pi_user>@<pi_host> -t "grillgauge dashboard"
 ```
 
-The dashboard wrapper script automatically:
+The dashboard automatically:
 - Checks that required services are running (grillgauge, prometheus)
-- Launches the Sampler TUI with the GrillGauge configuration
+- Launches the Textual TUI with live GrillGauge data
 - Displays live temperature trends, weather, and system health
 
 ### Dashboard Features
@@ -104,38 +104,16 @@ The dashboard displays four main widgets:
 ### Dashboard Controls
 
 - **`q`** - Quit the dashboard
+- **`r`** - Manual refresh
 - **`Ctrl+C`** - Force exit
 
 ### Dashboard Configuration
 
-The dashboard configuration is managed via Ansible templates:
-- **Config**: `ansible/roles/sampler/templates/grillgauge.yml.j2`
-- **Weather Script**: `ansible/roles/sampler/templates/fetch-weather.sh.j2`
-- **Service Stats Script**: `ansible/roles/sampler/templates/fetch-service-stats.sh.j2`
-- **Wrapper**: `ansible/roles/sampler/templates/wrapper.sh.j2`
-
-All scripts use Python with the `tabulate` library for consistent, professional table formatting with `simple` style (minimal borders, clean alignment).
+The dashboard configuration is managed via Python code and auto-detects Prometheus endpoints.
 
 ### Customizing Refresh Rates
 
-Edit the Sampler config template to adjust update frequencies:
-
-```yaml
-# ansible/roles/sampler/templates/grillgauge.yml.j2
-textboxes:
-  - title: Local weather
-    rate-ms: 600000    # 10 minutes (600,000 ms)
-  - title: Service Resource Usage
-    rate-ms: 5000      # 5 seconds
-
-sparklines:
-  - title: Meat (°C)
-    rate-ms: 15000     # 15 seconds
-  - title: Grill (°C)
-    rate-ms: 15000     # 15 seconds
-```
-
-After editing, redeploy with `ahoy provision deploy`.
+Edit the dashboard configuration in the Python code to adjust update frequencies (default: weather 10min, temperatures 15s, services 5s).
 
 ## Installation
 
@@ -295,7 +273,6 @@ The deployment uses Ansible roles:
 - **bluetooth** - Installs and configures BlueZ Bluetooth stack with automated pairing
 - **grillgauge** - Deploys application and systemd services
 - **prometheus** - Prometheus server setup for metrics collection and querying
-- **sampler** - Installs Sampler dashboard with custom weather and service monitoring scripts
 
 #### Ahoy Commands
 
@@ -360,9 +337,8 @@ Uses Ruff for linting and formatting, Pytest for testing, and Poetry for depende
 - **coloredlogs** - Enhanced logging output
 
 ### Dashboard & Monitoring
-- **Sampler** - Terminal-based dashboard framework (Go)
-- **Python scripts** - Custom data fetchers for weather and service stats
-- **tabulate** - Professional table formatting library
+- **Textual** - Python TUI framework for terminal applications
+- **httpx** - HTTP client for fetching weather and service data
 - **Open-Meteo API** - Free weather data (no API key required)
 - **Prometheus** - Metrics storage and querying
 
@@ -385,8 +361,8 @@ Uses Ruff for linting and formatting, Pytest for testing, and Poetry for depende
 
 **Dashboard won't launch:**
 ```bash
-# Check if Sampler is installed
-ssh teo@grillgauge "which sampler"
+# Check if grillgauge CLI is available
+ssh teo@grillgauge "which grillgauge"
 
 # Check if services are running
 ssh teo@grillgauge "systemctl status grillgauge prometheus"
@@ -397,9 +373,6 @@ ssh teo@grillgauge "sudo systemctl restart grillgauge prometheus"
 
 **Weather data shows "unavailable":**
 ```bash
-# Test weather script directly
-ssh teo@grillgauge "/usr/local/bin/grillgauge-weather"
-
 # Check internet connectivity
 ssh teo@grillgauge "curl -s http://ip-api.com/json/"
 ```
@@ -418,11 +391,8 @@ ssh teo@grillgauge "journalctl -u grillgauge -n 50"
 
 **Service stats not updating:**
 ```bash
-# Test service stats script directly
-ssh teo@grillgauge "/usr/local/bin/grillgauge-service-stats"
-
-# Check if python3-tabulate is installed
-ssh teo@grillgauge "python3 -c 'import tabulate; print(tabulate.__version__)'"
+# Check if prometheus is accessible
+ssh teo@grillgauge "curl -s 'http://localhost:9090/-/healthy'"
 ```
 
 ### Bluetooth Issues
