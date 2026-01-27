@@ -79,27 +79,23 @@ class WeatherWidget(Static):
         # Build display
         lines = []
 
-        # Line 1: Big emoji on its own line
-        emoji_line = Text(emoji, style="bold")
-        lines.append(Align.center(emoji_line))
+        # Line 1: Emoji + Status on same line
+        status_line = Text()
+        status_line.append(f"{emoji} {status}", style="bold")
+        lines.append(Align.center(status_line))  # Center align for the emoji + status
 
-        # Line 2: Temperature
-        temp_line = Text(f"{temp:.1f}°C", style="bold cyan")
-        lines.append(Align.center(temp_line))
+        # Line 2: Temperature | Feels like
+        temp_line = Text()
+        temp_line.append(f"{temp:.1f}°C", style="bold cyan")
+        temp_line.append(" | ", style="dim")
+        temp_line.append(f"Feels {feels:.0f}°C", style="cyan")
+        lines.append(Align.center(temp_line))  # Center align
 
-        # Line 3: Status | Feels like | Humidity (all on one line)
-        info_line = Text()
-        info_line.append(status, style="italic dim")
-        info_line.append(" | ", style="dim")
-        info_line.append(f"Feels {feels:.0f}°C", style="dim")
-        info_line.append(" | ", style="dim")
-        info_line.append(f"💧 {humidity}%", style="dim")
-        lines.append(Align.center(info_line))
-
-        # Line 4: Wind
-        wind_line = Text()
-        wind_line.append("🌬️  ", style="")
-        wind_line.append(f"{wind_speed:.1f} km/h {wind_dir}", style="green")
-        lines.append(Align.center(wind_line))
+        # Line 3: Humidity | Wind
+        details_line = Text()
+        details_line.append(f"💧 {humidity}%", style="dim")
+        details_line.append(" | ", style="dim")
+        details_line.append(f"🌬️  {wind_speed:.1f} km/h {wind_dir}", style="green")
+        lines.append(Align.center(details_line))  # Center align
 
         return Group(*lines)

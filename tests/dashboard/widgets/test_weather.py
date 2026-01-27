@@ -32,7 +32,9 @@ def test_status_to_emoji_case_sensitivity():
 @pytest.mark.asyncio
 async def test_weather_widget_render_weather_with_data():
     """Test weather widget rendering with weather data."""
-    expected_weather_lines = 4
+    expected_weather_lines = (
+        3  # Updated: now 3 lines (status, temp|feels, humidity|wind)
+    )
 
     widget = WeatherWidget()
     widget.weather_data = {
