@@ -2,6 +2,8 @@ import asyncio
 
 import click
 
+from .dashboard.app import run_dashboard
+from .dashboard.config import DashboardConfig
 from .server import serve_server
 
 
@@ -48,9 +50,6 @@ def dashboard(prometheus_url: str | None):
 
     Override with --prometheus-url or PROMETHEUS_URL environment variable.
     """
-    from grillgauge.dashboard.app import run_dashboard
-    from grillgauge.dashboard.config import DashboardConfig
-
     # Create config with optional override
     if prometheus_url:
         # Parse base URL from full API URL if needed

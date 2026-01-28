@@ -9,7 +9,7 @@ A CLI tool for monitoring BLE meat probes with support for grillprobeE devices. 
 ## Features
 
 - **Real-time Temperature Monitoring**: Track meat and grill probe temperatures with sparkline visualizations
-- **Terminal Dashboard**: Beautiful TUI dashboard using Sampler with live weather, service stats, and temperature trends
+- **Terminal Dashboard**: Beautiful TUI dashboard using Textual with live weather, service stats, and temperature trends
 - **Automatic Device Detection**: grillprobeE device discovery and configuration on service startup
 - **Prometheus Integration**: Metrics server for monitoring and alerting
 - **Weather Integration**: Auto-location weather data via Open-Meteo API

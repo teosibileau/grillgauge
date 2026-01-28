@@ -7,7 +7,7 @@ from rich.console import Group
 from rich.text import Text
 from textual.widgets import Static
 
-from grillgauge.dashboard.data.weather import get_weather_data
+from ..data.weather import get_weather_data
 
 
 def status_to_emoji(status: str) -> str:

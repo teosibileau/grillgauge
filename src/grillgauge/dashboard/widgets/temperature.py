@@ -6,14 +6,12 @@ from typing import Any
 from textual.app import RenderResult
 from textual.widgets import Sparkline
 
-from grillgauge.dashboard.data.probes import (
+from ..data.probes import (
     get_grill_temperature,
     get_meat_temperature,
     get_temperature_history,
 )
-from grillgauge.dashboard.renderables.zero_baseline_sparkline import (
-    ZeroBaselineSparklineRenderable,
-)
+from ..renderables.zero_baseline_sparkline import ZeroBaselineSparklineRenderable
 
 
 class TemperatureWidget(Sparkline):
