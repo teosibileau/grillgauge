@@ -82,29 +82,37 @@ The dashboard automatically:
 The dashboard displays four main widgets:
 
 1. **Local Weather** (updates every 10 minutes)
-   - Current temperature and feels-like temperature
-   - Humidity, wind speed, and direction
-   - Precipitation, cloud cover, and weather status
-   - Auto-detects location via IP geolocation
-   - Data from Open-Meteo API
+    - Current temperature and feels-like temperature
+    - Humidity, wind speed, and direction
+    - Precipitation, cloud cover, and weather status
+    - Auto-detects location via IP geolocation
+    - Data from Open-Meteo API
 
-2. **Service Resource Usage** (updates every 5 seconds)
-   - CPU and memory usage for grillgauge and prometheus services
-   - Process IDs and uptime
-   - Memory usage in MB
+2. **Cooking Temperature Guide** (static reference)
+    - Safe cooking temperatures for beef, pork, and chicken
+    - Displayed in a table format for easy reference
+    - Includes doneness levels for beef (rare, medium, well-done)
 
 3. **Meat Temperature** (updates every 15 seconds)
-   - Sparkline chart showing temperature trend
-   - Real-time data from Prometheus
+    - Sparkline chart showing temperature trend
+    - Real-time data from Prometheus
 
 4. **Grill Temperature** (updates every 15 seconds)
-   - Sparkline chart showing temperature trend
-   - Real-time data from Prometheus
+    - Sparkline chart showing temperature trend
+    - Real-time data from Prometheus
+
+### Service Statistics Modal
+
+Press **`s`** to open a modal displaying service resource usage:
+- CPU and memory usage for grillgauge and prometheus services
+- Process IDs and uptime
+- Memory usage in MB
 
 ### Dashboard Controls
 
 - **`q`** - Quit the dashboard
 - **`r`** - Manual refresh
+- **`s`** - Show service statistics modal
 - **`Ctrl+C`** - Force exit
 
 ### Dashboard Configuration
@@ -113,7 +121,7 @@ The dashboard configuration is managed via Python code and auto-detects Promethe
 
 ### Customizing Refresh Rates
 
-Edit the dashboard configuration in the Python code to adjust update frequencies (default: weather 10min, temperatures 15s, services 5s).
+Edit the dashboard configuration in the Python code to adjust update frequencies (default: weather 10min, temperatures 15s).
 
 ## Installation
 

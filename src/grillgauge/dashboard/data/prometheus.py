@@ -6,9 +6,7 @@ All Prometheus metric queries should use these functions.
 
 from typing import Any
 
-import httpx
-
-from grillgauge.config import logger
+from httpx import AsyncClient, HTTPError, Timeout, TimeoutException
 
 
 async def query_instant(
@@ -36,30 +34,21 @@ async def query_instant(
     """
     query_url = f"{prometheus_url}/api/v1/query"
 
-    logger.debug(f"Prometheus instant query: {query}")
-
     try:
-        async with httpx.AsyncClient(timeout=timeout) as client:
+        async with AsyncClient(timeout=timeout) as client:
             response = await client.get(query_url, params={"query": query})
             response.raise_for_status()
             data = response.json()
 
             if data.get("status") == "success":
-                result_count = len(data.get("data", {}).get("result", []))
-                logger.debug(f"Query successful: {result_count} result(s)")
                 return data.get("data", {})
-            error_msg = data.get("error", "Unknown error")
-            logger.warning(f"Prometheus query failed: {error_msg}")
             return None
 
-    except httpx.TimeoutException:
-        logger.error(f"Prometheus query timeout after {timeout}s: {query}")
+    except TimeoutException:
         return None
-    except httpx.HTTPError as e:
-        logger.error(f"Prometheus HTTP error: {e}")
+    except HTTPError:
         return None
-    except Exception as e:
-        logger.error(f"Unexpected error querying Prometheus: {e}")
+    except Exception:
         return None
 
 
@@ -95,12 +84,6 @@ async def query_range(
     """
     range_url = f"{prometheus_url}/api/v1/query_range"
 
-    duration_minutes = (end_time - start_time) / 60
-    logger.debug(
-        f"Prometheus range query: {query} "
-        f"(duration: {duration_minutes:.1f}m, step: {step})"
-    )
-
     params = {
         "query": query,
         "start": start_time,
@@ -109,31 +92,16 @@ async def query_range(
     }
 
     try:
-        async with httpx.AsyncClient(timeout=timeout) as client:
+        async with AsyncClient(timeout=Timeout(timeout)) as client:
             response = await client.get(range_url, params=params)
             response.raise_for_status()
             data = response.json()
 
             if data.get("status") == "success":
-                results = data.get("data", {}).get("result", [])
-                if results:
-                    value_count = len(results[0].get("values", []))
-                    logger.debug(f"Range query successful: {value_count} data point(s)")
-                else:
-                    logger.warning(f"Range query returned no results for: {query}")
                 return data.get("data", {})
-            error_msg = data.get("error", "Unknown error")
-            logger.warning(f"Prometheus range query failed: {error_msg}")
             return None
 
-    except httpx.TimeoutException:
-        logger.error(f"Prometheus range query timeout after {timeout}s: {query}")
-        return None
-    except httpx.HTTPError as e:
-        logger.error(f"Prometheus HTTP error: {e}")
-        return None
-    except Exception as e:
-        logger.error(f"Unexpected error in range query: {e}")
+    except Exception:
         return None
 
 
@@ -169,8 +137,7 @@ def extract_instant_value(data: dict[str, Any] | None) -> float | None:
 
     try:
         return float(value[1])
-    except (ValueError, TypeError, IndexError) as e:
-        logger.warning(f"Failed to extract instant value: {e}")
+    except (ValueError, TypeError, IndexError):
         return None
 
 
@@ -206,6 +173,5 @@ def extract_range_values(data: dict[str, Any] | None) -> list[float]:
 
     try:
         return [float(val[1]) for val in values if len(val) >= value_length_min]
-    except (ValueError, TypeError, IndexError) as e:
-        logger.warning(f"Failed to extract range values: {e}")
+    except (ValueError, TypeError, IndexError):
         return []

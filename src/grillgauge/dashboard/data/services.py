@@ -7,7 +7,7 @@ No systemctl or ps commands needed - works cross-platform.
 import time
 from typing import Any
 
-from grillgauge.dashboard.data import prometheus
+from .prometheus import query_instant
 
 
 def format_uptime(seconds: int) -> str:
@@ -60,9 +60,7 @@ async def get_service_stats_prometheus(
     stats = []
 
     # Get total system memory (for MEM% calculation)
-    total_mem_result = await prometheus.query_instant(
-        prometheus_url, "node_memory_MemTotal_bytes"
-    )
+    total_mem_result = await query_instant(prometheus_url, "node_memory_MemTotal_bytes")
     total_mem_bytes = 1  # Default to avoid division by zero
     if total_mem_result and total_mem_result.get("result"):
         total_mem_bytes = float(total_mem_result["result"][0]["value"][1])
@@ -77,20 +75,20 @@ async def get_service_stats_prometheus(
             f"sum(rate(namedprocess_namegroup_cpu_seconds_total"
             f'{{groupname="{groupname}"}}[1m])) * 100'
         )
-        cpu_result = await prometheus.query_instant(prometheus_url, cpu_query)
+        cpu_result = await query_instant(prometheus_url, cpu_query)
 
         mem_query = (
             f"namedprocess_namegroup_memory_bytes"
             f'{{groupname="{groupname}",memtype="resident"}}'
         )
-        mem_result = await prometheus.query_instant(prometheus_url, mem_query)
+        mem_result = await query_instant(prometheus_url, mem_query)
 
         # Start time (oldest process in the group)
         start_query = (
             f"namedprocess_namegroup_oldest_start_time_seconds"
             f'{{groupname="{groupname}"}}'
         )
-        start_result = await prometheus.query_instant(prometheus_url, start_query)
+        start_result = await query_instant(prometheus_url, start_query)
 
         # Check if all queries succeeded
         if not all([cpu_result, mem_result, start_result]):

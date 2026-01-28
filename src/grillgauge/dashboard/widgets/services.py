@@ -4,8 +4,8 @@ from typing import Any
 
 from textual.widgets import DataTable
 
-from grillgauge.dashboard.config import DashboardConfig
-from grillgauge.dashboard.data.services import get_service_stats
+from ..config import DashboardConfig
+from ..data.services import get_service_stats
 
 
 class ServicesWidget(DataTable):

@@ -6,7 +6,12 @@ Uses base Prometheus client for all HTTP operations.
 
 from typing import Any
 
-from grillgauge.dashboard.data import prometheus
+from .prometheus import (
+    extract_instant_value,
+    extract_range_values,
+    query_instant,
+    query_range,
+)
 
 
 async def get_meat_temperature(prometheus_url: str) -> float | None:
@@ -18,10 +23,8 @@ async def get_meat_temperature(prometheus_url: str) -> float | None:
     Returns:
         Current meat temperature in Celsius, or None if unavailable
     """
-    data = await prometheus.query_instant(
-        prometheus_url, "grillgauge_meat_temperature_celsius"
-    )
-    return prometheus.extract_instant_value(data)
+    data = await query_instant(prometheus_url, "grillgauge_meat_temperature_celsius")
+    return extract_instant_value(data)
 
 
 async def get_grill_temperature(prometheus_url: str) -> float | None:
@@ -33,10 +36,8 @@ async def get_grill_temperature(prometheus_url: str) -> float | None:
     Returns:
         Current grill temperature in Celsius, or None if unavailable
     """
-    data = await prometheus.query_instant(
-        prometheus_url, "grillgauge_grill_temperature_celsius"
-    )
-    return prometheus.extract_instant_value(data)
+    data = await query_instant(prometheus_url, "grillgauge_grill_temperature_celsius")
+    return extract_instant_value(data)
 
 
 async def get_temperature_history(
@@ -64,10 +65,10 @@ async def get_temperature_history(
     end_time = int(time.time())
     start_time = end_time - (duration_minutes * 60)
 
-    data = await prometheus.query_range(
+    data = await query_range(
         prometheus_url, metric_name, start_time, end_time, f"{step}s"
     )
-    return prometheus.extract_range_values(data)
+    return extract_range_values(data)
 
 
 async def get_temperature_data(prometheus_url: str) -> dict[str, Any]:
