@@ -13,11 +13,11 @@
       when: ansible_facts["os_family"] == "Debian"
 
   roles:
-     - system
-     - bluetooth
-     - grillgauge
-     - prometheus
-     - process-exporter
+    # - system
+    # - bluetooth
+    - grillgauge
+    # - prometheus
+    # - process-exporter
 
   post_tasks:
     - name: Verify services are running

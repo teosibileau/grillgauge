@@ -4,7 +4,7 @@ commands:
     usage: Freeze python requirements to txt
     cmd: |
       echo "📦 Freezing python dependencies to requirements.txt..."
-      poetry export --without-hashes --format requirements.txt > requirements.txt
+      poetry export --without-hashes --with dashboard --format requirements.txt > requirements.txt
       echo "✅ Requirements frozen successfully!"
 
   setup:
