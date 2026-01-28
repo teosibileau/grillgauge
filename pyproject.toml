@@ -24,6 +24,11 @@ pytest-cov = "^6.0"
 ipdb = "^0.13.13"
 pytest-asyncio = "^1.3.0"
 
+
+[tool.poetry.group.dashboard.dependencies]
+textual = "^7.4.0"
+httpx = "^0.28.1"
+
 [tool.poetry.scripts]
 grillgauge = "grillgauge.cli:main"
 
@@ -33,7 +38,7 @@ target-version = "py310"
 
 [tool.ruff.lint]
 select = ["E", "F", "W", "I", "N", "UP", "B", "A", "C4", "DTZ", "T10", "EM", "ISC", "ICN", "G", "PIE", "T20", "PYI", "PT", "Q", "RSE", "RET", "SIM", "TID", "TCH", "ARG", "PTH", "ERA", "PGH", "PL", "TRY", "FLY", "NPY", "RUF"]
-ignore = ["E501", "PLR0913", "ARG002"]
+ignore = ["E501", "PLR0913", "ARG002", "TID252"]
 
 [tool.ruff.format]
 quote-style = "double"

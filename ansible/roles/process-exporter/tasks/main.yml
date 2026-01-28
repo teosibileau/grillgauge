@@ -1,0 +1,42 @@
+---
+- name: Install prometheus-process-exporter from Debian repositories
+  apt:
+    name: prometheus-process-exporter
+    state: present
+    update_cache: yes
+  when: ansible_facts.os_family == "Debian"
+
+- name: Create process-exporter configuration directory
+  file:
+    path: /etc/prometheus-process-exporter
+    state: directory
+    owner: root
+    group: root
+    mode: '0755'
+
+- name: Deploy process-exporter configuration
+  template:
+    src: process-exporter.yml.j2
+    dest: /etc/prometheus-process-exporter/config.yml
+    owner: root
+    group: root
+    mode: '0644'
+  notify: restart process-exporter
+
+- name: Configure process-exporter service to use config file
+  lineinfile:
+    path: /etc/default/prometheus-process-exporter
+    regexp: '^ARGS='
+    line: 'ARGS="--config.path=/etc/prometheus-process-exporter/config.yml"'
+    create: yes
+    owner: root
+    group: root
+    mode: '0644'
+  notify: restart process-exporter
+
+- name: Enable and start prometheus-process-exporter service
+  systemd:
+    name: prometheus-process-exporter
+    enabled: yes
+    state: started
+    daemon_reload: yes

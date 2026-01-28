@@ -41,7 +41,10 @@ class TestCLI:
         """Test serve command with custom host."""
         runner = CliRunner()
 
-        with patch("grillgauge.cli.asyncio.run") as mock_run:
+        with (
+            patch("grillgauge.cli.serve_server", new_callable=AsyncMock),
+            patch("grillgauge.cli.asyncio.run") as mock_run,
+        ):
             result = runner.invoke(serve, ["--host", "0.0.0.0"])
 
             assert result.exit_code == 0
@@ -51,7 +54,10 @@ class TestCLI:
         """Test serve command with custom port."""
         runner = CliRunner()
 
-        with patch("grillgauge.cli.asyncio.run") as mock_run:
+        with (
+            patch("grillgauge.cli.serve_server", new_callable=AsyncMock),
+            patch("grillgauge.cli.asyncio.run") as mock_run,
+        ):
             result = runner.invoke(serve, ["--port", "9000"])
 
             assert result.exit_code == 0
@@ -61,7 +67,10 @@ class TestCLI:
         """Test serve command with custom host and port."""
         runner = CliRunner()
 
-        with patch("grillgauge.cli.asyncio.run") as mock_run:
+        with (
+            patch("grillgauge.cli.serve_server", new_callable=AsyncMock),
+            patch("grillgauge.cli.asyncio.run") as mock_run,
+        ):
             result = runner.invoke(serve, ["--host", "0.0.0.0", "--port", "9090"])
 
             assert result.exit_code == 0
@@ -72,11 +81,15 @@ class TestCLI:
         runner = CliRunner()
 
         with (
-            patch("grillgauge.cli.serve_server", new_callable=AsyncMock),
+            patch("grillgauge.cli.serve_server", new_callable=AsyncMock) as mock_serve,  # noqa: F841
             patch("grillgauge.cli.asyncio.run") as mock_run,
         ):
-            # Make asyncio.run execute the coroutine
-            mock_run.side_effect = lambda *args: None  # noqa: ARG005
+            # Make asyncio.run await the coroutine
+            def run_side_effect(coro):
+                # Since we're in a test, we can just create a task or ignore
+                pass
+
+            mock_run.side_effect = run_side_effect
 
             result = runner.invoke(
                 serve,

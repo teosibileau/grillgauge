@@ -1,9 +1,13 @@
+import warnings
 from unittest.mock import patch
 
 import pytest
 from prometheus_client import CollectorRegistry
 
 from grillgauge.metrics import MetricsCollector
+
+# Suppress coroutine warnings from mocks
+warnings.filterwarnings("ignore", "coroutine.*was never awaited")
 
 
 class TestMetricsCollector:

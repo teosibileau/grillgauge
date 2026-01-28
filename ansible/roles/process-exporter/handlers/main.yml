@@ -1,0 +1,6 @@
+---
+- name: restart process-exporter
+  systemd:
+    name: prometheus-process-exporter
+    state: restarted
+    daemon_reload: yes

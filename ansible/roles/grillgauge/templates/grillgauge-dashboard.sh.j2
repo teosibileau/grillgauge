@@ -1,0 +1,6 @@
+#!/bin/bash
+# GrillGauge Dashboard Wrapper Script
+# Launches the Textual-based dashboard
+
+cd /opt/grillgauge || exit 1
+/opt/grillgauge/venv/bin/python -m src.grillgauge.cli dashboard

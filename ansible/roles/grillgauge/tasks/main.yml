@@ -87,6 +87,14 @@
     dest: /etc/systemd/system/grillgauge.service
   notify: restart grillgauge
 
+- name: Create grillgauge-dashboard wrapper script
+  template:
+    src: grillgauge-dashboard.sh.j2
+    dest: /usr/local/bin/grillgauge-dashboard
+    mode: '0755'
+    owner: root
+    group: root
+
 - name: Cleanup temporary files
   file:
     path: /tmp/grillgauge

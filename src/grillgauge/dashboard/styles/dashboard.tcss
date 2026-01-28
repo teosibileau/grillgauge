@@ -1,0 +1,102 @@
+/* GrillGauge Dashboard Styling */
+
+/* Main container */
+#dashboard-container {
+    width: 100%;
+    height: 100%;
+}
+
+/* 2x2 Grid Layout */
+#dashboard-grid {
+    grid-size: 2 2;
+    grid-gutter: 1 1;
+    padding: 1;
+    height: 100%;
+    grid-rows: 8 1fr;  /* Top row: 8 lines, bottom row: remaining space */
+}
+
+/* Weather Widget (Top Left) */
+#weather {
+    border: solid $primary;
+    height: 100%;
+    padding: 1;
+    max-height: 8;
+}
+
+#weather > Static {
+    height: 100%;
+}
+
+/* Cooking Widget (Top Right) */
+#cooking {
+    border: solid $secondary;
+    height: 100%;
+    max-height: 8;
+}
+
+#cooking DataTable {
+    height: 100%;
+    align: center middle;
+}
+
+#cooking .datatable--header {
+    display: none;
+}
+
+#cooking .datatable--cell {
+    text-align: center;
+}
+
+/* Meat Temperature Sparkline (Bottom Left) */
+#meat-temp {
+    border: solid $success;
+    height: 100%;
+    padding: 1;
+}
+
+/* Grill Temperature Sparkline (Bottom Right) */
+#grill-temp {
+    border: solid $warning;
+    height: 100%;
+    padding: 1;
+}
+
+/* DataTable Styling */
+DataTable {
+    background: transparent;
+}
+
+DataTable > .datatable--header {
+    text-style: bold;
+    background: transparent;
+}
+
+DataTable > .datatable--cursor {
+    background: transparent;
+}
+
+/* Sparkline Styling */
+Sparkline {
+    background: transparent;
+}
+
+/* Header and Footer */
+Header {
+    background: $primary-background;
+}
+
+Footer {
+    background: $primary-background;
+}
+
+/* General Widget Styling */
+Widget {
+    overflow: auto;
+}
+
+/* Modal container for services */
+#services-modal-container {
+    align: center middle;
+    width: 100%;
+    height: 100%;
+}

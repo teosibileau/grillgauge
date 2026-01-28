@@ -17,7 +17,7 @@
     - bluetooth
     - grillgauge
     - prometheus
-    - sampler
+    - process-exporter
 
   post_tasks:
     - name: Verify services are running
@@ -30,6 +30,8 @@
         - bluetooth-agent
         - grillgauge
         - prometheus
+        - prometheus-node-exporter
+        - prometheus-process-exporter
       ignore_errors: true
 
     - name: Show service status
@@ -39,5 +41,7 @@
         - bluetooth-agent
         - grillgauge
         - prometheus
+        - prometheus-node-exporter
+        - prometheus-process-exporter
       ignore_errors: true
       changed_when: false
