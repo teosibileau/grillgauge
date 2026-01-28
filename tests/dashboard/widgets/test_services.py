@@ -20,8 +20,18 @@ class TestServicesWidget:
         assert widget.cursor_type == "none"
 
     @patch("grillgauge.dashboard.widgets.services.ServicesWidget.run_worker")
-    def test_on_mount(self, mock_run_worker):
+    @patch("grillgauge.dashboard.widgets.services.ServicesWidget.update_services")
+    def test_on_mount(self, mock_update_services, mock_run_worker):
         """Test widget setup on mount."""
+        import asyncio
+
+        # Make run_worker await the coroutine to avoid warning
+        def await_coro(coro):
+            if asyncio.iscoroutine(coro):
+                asyncio.run(coro)
+
+        mock_run_worker.side_effect = await_coro
+
         widget = ServicesWidget()
 
         # Mock the add_columns method since we're inheriting from DataTable
@@ -37,8 +47,12 @@ class TestServicesWidget:
                 "UPTIME",
             )
 
-            # Verify worker is started
+            # Verify run_worker was called with update_services coroutine
             mock_run_worker.assert_called_once()
+            args = mock_run_worker.call_args[0]
+            assert len(args) == 1
+            # The argument should be the coroutine returned by update_services
+            assert hasattr(args[0], "__await__")
 
     @pytest.mark.asyncio
     @patch("grillgauge.dashboard.widgets.services.DashboardConfig")

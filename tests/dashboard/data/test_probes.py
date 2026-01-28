@@ -19,7 +19,7 @@ async def test_get_meat_temperature_success():
     meat_temp_value = 55.5
 
     with patch(
-        "grillgauge.dashboard.data.prometheus.query_instant",
+        "grillgauge.dashboard.data.probes.query_instant",
         return_value=mock_data,
     ):
         temp = await get_meat_temperature("http://localhost:9090")
@@ -30,7 +30,7 @@ async def test_get_meat_temperature_success():
 async def test_get_meat_temperature_no_data():
     """Test meat temperature fetch with no data."""
     with patch(
-        "grillgauge.dashboard.data.prometheus.query_instant",
+        "grillgauge.dashboard.data.probes.query_instant",
         return_value={"result": []},
     ):
         temp = await get_meat_temperature("http://localhost:9090")
@@ -41,7 +41,7 @@ async def test_get_meat_temperature_no_data():
 async def test_get_meat_temperature_error():
     """Test meat temperature fetch with error."""
     with patch(
-        "grillgauge.dashboard.data.prometheus.query_instant",
+        "grillgauge.dashboard.data.probes.query_instant",
         return_value=None,
     ):
         temp = await get_meat_temperature("http://localhost:9090")
@@ -55,7 +55,7 @@ async def test_get_grill_temperature_success():
     grill_temp_value = 225.0
 
     with patch(
-        "grillgauge.dashboard.data.prometheus.query_instant",
+        "grillgauge.dashboard.data.probes.query_instant",
         return_value=mock_data,
     ):
         temp = await get_grill_temperature("http://localhost:9090")
@@ -66,7 +66,7 @@ async def test_get_grill_temperature_success():
 async def test_get_grill_temperature_no_data():
     """Test grill temperature fetch with no data."""
     with patch(
-        "grillgauge.dashboard.data.prometheus.query_instant",
+        "grillgauge.dashboard.data.probes.query_instant",
         return_value={"result": []},
     ):
         temp = await get_grill_temperature("http://localhost:9090")
@@ -77,7 +77,7 @@ async def test_get_grill_temperature_no_data():
 async def test_get_grill_temperature_error():
     """Test grill temperature fetch with error."""
     with patch(
-        "grillgauge.dashboard.data.prometheus.query_instant",
+        "grillgauge.dashboard.data.probes.query_instant",
         return_value=None,
     ):
         temp = await get_grill_temperature("http://localhost:9090")
@@ -144,7 +144,7 @@ async def test_get_temperature_history_success():
     expected_data_points = 5
 
     with patch(
-        "grillgauge.dashboard.data.prometheus.query_range",
+        "grillgauge.dashboard.data.probes.query_range",
         return_value=mock_data,
     ):
         temps = await get_temperature_history(
@@ -161,7 +161,7 @@ async def test_get_temperature_history_success():
 async def test_get_temperature_history_no_data():
     """Test historical temperature fetch with no data."""
     with patch(
-        "grillgauge.dashboard.data.prometheus.query_range",
+        "grillgauge.dashboard.data.probes.query_range",
         return_value={"result": []},
     ):
         temps = await get_temperature_history(
@@ -177,7 +177,7 @@ async def test_get_temperature_history_no_data():
 async def test_get_temperature_history_error():
     """Test historical temperature fetch with API error."""
     with patch(
-        "grillgauge.dashboard.data.prometheus.query_range",
+        "grillgauge.dashboard.data.probes.query_range",
         return_value=None,
     ):
         temps = await get_temperature_history(

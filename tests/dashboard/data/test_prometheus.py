@@ -29,7 +29,9 @@ async def test_query_instant_success():
     mock_client = AsyncMock()
     mock_client.__aenter__.return_value = mock_client_instance
 
-    with patch("httpx.AsyncClient", return_value=mock_client):
+    with patch(
+        "grillgauge.dashboard.data.prometheus.AsyncClient", return_value=mock_client
+    ):
         data = await query_instant("http://localhost:9090", "up")
         assert data is not None
         assert data.get("result") == [{"value": [1234567890, "42.5"]}]
@@ -52,7 +54,9 @@ async def test_query_instant_no_results():
     mock_client = AsyncMock()
     mock_client.__aenter__.return_value = mock_client_instance
 
-    with patch("httpx.AsyncClient", return_value=mock_client):
+    with patch(
+        "grillgauge.dashboard.data.prometheus.AsyncClient", return_value=mock_client
+    ):
         data = await query_instant("http://localhost:9090", "nonexistent_metric")
         assert data is not None
         assert data.get("result") == []
@@ -75,7 +79,9 @@ async def test_query_instant_error_status():
     mock_client = AsyncMock()
     mock_client.__aenter__.return_value = mock_client_instance
 
-    with patch("httpx.AsyncClient", return_value=mock_client):
+    with patch(
+        "grillgauge.dashboard.data.prometheus.AsyncClient", return_value=mock_client
+    ):
         data = await query_instant("http://localhost:9090", "invalid{query")
         assert data is None
 
@@ -90,7 +96,9 @@ async def test_query_instant_connection_error():
     mock_client = AsyncMock()
     mock_client.__aenter__.return_value = mock_client_instance
 
-    with patch("httpx.AsyncClient", return_value=mock_client):
+    with patch(
+        "grillgauge.dashboard.data.prometheus.AsyncClient", return_value=mock_client
+    ):
         data = await query_instant("http://localhost:9090", "up")
         assert data is None
 
@@ -107,7 +115,9 @@ async def test_query_instant_timeout():
     mock_client = AsyncMock()
     mock_client.__aenter__.return_value = mock_client_instance
 
-    with patch("httpx.AsyncClient", return_value=mock_client):
+    with patch(
+        "grillgauge.dashboard.data.prometheus.AsyncClient", return_value=mock_client
+    ):
         data = await query_instant("http://localhost:9090", "up", timeout=1.0)
         assert data is None
 
@@ -139,7 +149,9 @@ async def test_query_range_success():
     mock_client = AsyncMock()
     mock_client.__aenter__.return_value = mock_client_instance
 
-    with patch("httpx.AsyncClient", return_value=mock_client):
+    with patch(
+        "grillgauge.dashboard.data.prometheus.AsyncClient", return_value=mock_client
+    ):
         data = await query_range(
             "http://localhost:9090",
             "grillgauge_meat_temperature_celsius",
@@ -170,7 +182,9 @@ async def test_query_range_no_results():
     mock_client = AsyncMock()
     mock_client.__aenter__.return_value = mock_client_instance
 
-    with patch("httpx.AsyncClient", return_value=mock_client):
+    with patch(
+        "grillgauge.dashboard.data.prometheus.AsyncClient", return_value=mock_client
+    ):
         data = await query_range(
             "http://localhost:9090",
             "nonexistent_metric",
@@ -192,7 +206,9 @@ async def test_query_range_error():
     mock_client = AsyncMock()
     mock_client.__aenter__.return_value = mock_client_instance
 
-    with patch("httpx.AsyncClient", return_value=mock_client):
+    with patch(
+        "grillgauge.dashboard.data.prometheus.AsyncClient", return_value=mock_client
+    ):
         data = await query_range(
             "http://localhost:9090",
             "up",

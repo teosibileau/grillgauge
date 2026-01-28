@@ -44,17 +44,17 @@ async def test_get_service_stats_prometheus_success():
     async def mock_query(_prometheus_url, query):
         if "node_memory_MemTotal_bytes" in query:
             return {"result": [{"value": [0, "4363632640"]}]}  # 4GB RAM
-        if "cpu_seconds_total" in query:
+        if "namedprocess_namegroup_cpu_seconds_total" in query:
             return {"result": [{"value": [0, "2.5"]}]}  # 2.5% CPU
         if 'memtype="resident"' in query:
             return {"result": [{"value": [0, "47185920"]}]}  # 45MB
-        if "oldest_start_time_seconds" in query:
+        if "namedprocess_namegroup_oldest_start_time_seconds" in query:
             return {"result": [{"value": [0, "1706000000"]}]}  # Some timestamp
         return None
 
     with (
         patch(
-            "grillgauge.dashboard.data.prometheus.query_instant", side_effect=mock_query
+            "grillgauge.dashboard.data.services.query_instant", side_effect=mock_query
         ),
         patch("time.time", return_value=1706186300),  # 186300 seconds later
     ):
@@ -79,7 +79,7 @@ async def test_get_service_stats_prometheus_missing_metrics():
         return None
 
     with patch(
-        "grillgauge.dashboard.data.prometheus.query_instant", side_effect=mock_query
+        "grillgauge.dashboard.data.services.query_instant", side_effect=mock_query
     ):
         stats = await get_service_stats_prometheus(
             "http://localhost:9090", ["grillgauge"]
@@ -97,7 +97,7 @@ async def test_get_service_stats_prometheus_empty_results():
         return {"result": []}
 
     with patch(
-        "grillgauge.dashboard.data.prometheus.query_instant", side_effect=mock_query
+        "grillgauge.dashboard.data.services.query_instant", side_effect=mock_query
     ):
         stats = await get_service_stats_prometheus(
             "http://localhost:9090", ["grillgauge"]

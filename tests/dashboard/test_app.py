@@ -108,12 +108,10 @@ class TestDashboardApp:
 
         # Verify the update methods exist (they're set up during on_mount)
         assert hasattr(app, "_update_weather")
-        assert hasattr(app, "_update_services")
         assert hasattr(app, "_update_temperatures")
 
         # Verify they are callable
         assert callable(app._update_weather)
-        assert callable(app._update_services)
         assert callable(app._update_temperatures)
 
     @pytest.mark.asyncio
