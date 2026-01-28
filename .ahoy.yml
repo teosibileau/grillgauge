@@ -1,10 +1,6 @@
 ahoyapi: v2
-usage: Smart Home cli tools.
+usage: Helpers for grillgauge.
 commands:
-  docker:
-    usage: A series of docker commands (experimental)
-    imports:
-      - .ahoy/docker.ahoy.yml
   provision:
     usage: Ansible provisioning commands
     imports:

@@ -4,12 +4,18 @@ A CLI tool for monitoring BLE meat probes with support for grillprobeE devices. 
 
 ![GrillGauge Dashboard](.assets/dashboard-screenshot.png)
 
-*Real-time monitoring dashboard showing temperature trends, weather conditions, and system health*
+## Why?
+
+I have one of this:
+
+![BBQ Probe](.assets/probe.png)
+
+The probe is fantastic but the app is not. Also, I didn't want to be glued to my phone while monitoring temperatures. I needed a way to monitor an oven without constantly checking my device.
 
 ## Features
 
 - **Real-time Temperature Monitoring**: Track meat and grill probe temperatures with sparkline visualizations
-- **Terminal Dashboard**: Beautiful TUI dashboard using Textual with live weather, service stats, and temperature trends
+- **Terminal Dashboard**: Beautiful TUI dashboard using Textual with live weather, cooking guidelines, and temperature trends
 - **Automatic Device Detection**: grillprobeE device discovery and configuration on service startup
 - **Prometheus Integration**: Metrics server for monitoring and alerting
 - **Weather Integration**: Auto-location weather data via Open-Meteo API
@@ -24,133 +30,14 @@ A CLI tool for monitoring BLE meat probes with support for grillprobeE devices. 
 
 1. Ensure you have Poetry installed: `curl -sSL https://install.python-poetry.org | python3 -`
 2. Clone the project and install dependencies: `poetry install`
-3. Run commands via Poetry: `poetry run grillgauge --help`
 
-### For Production (Raspberry Pi Deployment)
-
-1. **Prerequisites**:
-   - Raspberry Pi (Raspberry Pi OS Lite 64-bit recommended)
-   - SSH access configured with key-based authentication
-   - [Ahoy](https://github.com/ahoy-cli/ahoy) installed on your local machine
-   - Docker (for testing Ansible playbooks)
-
-2. **Setup SSH access**:
-   ```bash
-   # Copy your SSH key to the Raspberry Pi
-   ssh-copy-id pi@<raspberry-pi-ip>
-   ```
-
-3. **Configure production inventory**:
-   ```bash
-   ahoy provision setup
-   ```
-   This interactive wizard will generate your production inventory file with your Raspberry Pi's connection details.
-
-4. **Deploy to Raspberry Pi**:
-   ```bash
-   ahoy provision deploy
-   ```
-   This will:
-   - Install Python, BlueZ (Bluetooth stack), and all dependencies
-   - Deploy the grillgauge application to `/opt/grillgauge`
-   - Set up systemd service for metrics server
-   - Configure one-time device discovery on service startup
-
-5. **Verify deployment**:
-   ```bash
-   ahoy provision status
-   ```
-
-## Dashboard
-
-GrillGauge includes a beautiful terminal dashboard built with [Textual](https://textual.textualize.io/) for real-time monitoring.
-
-### Launching the Dashboard
-
-```bash
-# From your local machine (SSH into Raspberry Pi)
-ssh <pi_user>@<pi_host> -t "grillgauge dashboard"
-```
-
-The dashboard automatically:
-- Checks that required services are running (grillgauge, prometheus)
-- Launches the Textual TUI with live GrillGauge data
-- Displays live temperature trends, weather, and system health
-
-### Dashboard Features
-
-The dashboard displays four main widgets:
-
-1. **Local Weather** (updates every 10 minutes)
-    - Current temperature and feels-like temperature
-    - Humidity, wind speed, and direction
-    - Precipitation, cloud cover, and weather status
-    - Auto-detects location via IP geolocation
-    - Data from Open-Meteo API
-
-2. **Cooking Temperature Guide** (static reference)
-    - Safe cooking temperatures for beef, pork, and chicken
-    - Displayed in a table format for easy reference
-    - Includes doneness levels for beef (rare, medium, well-done)
-
-3. **Meat Temperature** (updates every 15 seconds)
-    - Sparkline chart showing temperature trend
-    - Real-time data from Prometheus
-
-4. **Grill Temperature** (updates every 15 seconds)
-    - Sparkline chart showing temperature trend
-    - Real-time data from Prometheus
-
-### Service Statistics Modal
-
-Press **`s`** to open a modal displaying service resource usage:
-- CPU and memory usage for grillgauge and prometheus services
-- Process IDs and uptime
-- Memory usage in MB
-
-### Dashboard Controls
-
-- **`q`** - Quit the dashboard
-- **`r`** - Manual refresh
-- **`s`** - Show service statistics modal
-- **`Ctrl+C`** - Force exit
-
-### Dashboard Configuration
-
-The dashboard configuration is managed via Python code and auto-detects Prometheus endpoints.
-
-### Customizing Refresh Rates
-
-Edit the dashboard configuration in the Python code to adjust update frequencies (default: weather 10min, temperatures 15s).
-
-## Installation
-
-### Development Installation
-
-This package uses Poetry for dependency management. To install:
-
-1. Ensure you have Poetry installed: `curl -sSL https://install.python-poetry.org | python3 -`
-2. Clone or download the project.
-3. Run `poetry install` to install dependencies.
-
-### Production Deployment
-
-See the [Quick Start](#quick-start) section for Raspberry Pi deployment via Ansible.
-
-#### System Requirements
-
-- **Development**: macOS, Linux, or Windows with Python 3.10+
-- **Production**: Raspberry Pi with Raspberry Pi OS (64-bit recommended)
-- **Bluetooth**: BlueZ stack (automatically installed via Ansible on production)
-- **Hardware**: FMG SH253B grillprobeE thermometer
-
-## Usage
+### Usage
 
 ```bash
 poetry run grillgauge --help
 ```
 
-### Scanning for Devices
+#### Scanning for Devices
 
 ```bash
 poetry run grillgauge scan --timeout 10
@@ -167,6 +54,44 @@ INFO Device name: BBQ ProbeE 26012
 INFO Meat temp: 28.0°C, Grill temp: 31.0°C
 INFO Successfully registered: BBQ ProbeE 26012
 ```
+
+#### Work on the dashboard
+
+The dashboard needs the prometheus service to gather data. Check [Raspberry Pi Deployment](#quick-start).
+
+To do local development you can set the PROMETHEUS_URL env var to the pi and `PROMETHEUS_URL="http://grillgauge:9090" poetry run grillgauge dashboard`
+
+### Raspberry Pi Deployment
+
+1. **Prerequisites**:
+   - Raspberry Pi running OS Lite 64-bit recommended. This was tested on `Linux grillgauge 6.12.47+rpt-rpi-v8 #1 SMP PREEMPT Debian 1:6.12.47-1+rpt1 (2025-09-16) aarch64 GNU/Linux` using a `raspberry pi 4` and a `raspberry pi zero 2 W`
+   - Use [raspberry pi imager](https://www.raspberrypi.com/software/) to burn the sd card. It's the most straight forward way to set wifi, public keys, hostname, etc.
+   - [Ahoy](https://github.com/ahoy-cli/ahoy) installed on your local machine
+
+2. **Setup SSH access**:
+   ```bash
+   # Copy your SSH key to the Raspberry Pi
+   ssh-copy-id <raspberry-pi-user>@<raspberry-pi-ip>
+   ```
+
+3. **Configure production inventory**:
+   ```bash
+   ahoy provision setup
+   ```
+   This interactive wizard will generate your production inventory file with your Raspberry Pi's connection details.
+
+4. **Deploy to Raspberry Pi**:
+   ```bash
+   ahoy provision deploy
+   ```
+   This will run the ansible provisioning on the pi.
+
+5. **Verify deployment**:
+   ```bash
+   ahoy provision status
+   ```
+
+
 
 ### Prometheus Metrics Server
 

@@ -82,13 +82,6 @@ commands:
       echo ""
       echo "Next: ahoy provision deploy"
 
-  test:
-    usage: Provision the test ARM64 container
-    cmd: |
-      ahoy provision freeze
-      echo "🐳 Starting Ansible provisioning of test container..."
-      cd ansible && ansible-playbook -i inventory/docker.ini playbooks/site.yml
-
   deploy:
     usage: Deploy to Raspberry Pi production device
     cmd: |
