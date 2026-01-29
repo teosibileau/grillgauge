@@ -1,5 +1,7 @@
 """Main GrillGauge dashboard application."""
 
+import os
+import subprocess  # nosec B404
 from typing import ClassVar
 
 from textual.app import App, ComposeResult
@@ -37,7 +39,7 @@ class DashboardApp(App):
     - Grill temperature sparkline (0°C baseline, auto-scaling)
 
     Keyboard shortcuts:
-    - q: Quit
+    - q: Detach session or quit
     - r: Manual refresh all widgets
     - s: Show service statistics
     - ctrl+c: Quit
@@ -46,7 +48,7 @@ class DashboardApp(App):
     CSS_PATH = "styles/dashboard.tcss"
     TITLE = "GrillGauge Dashboard"
     BINDINGS: ClassVar[list[tuple[str, str, str]]] = [
-        ("q", "quit", "Quit"),
+        ("q", "detach", "Detach session or quit"),
         ("r", "refresh", "Refresh"),
         ("s", "show_services", "Show Services"),
     ]
@@ -140,6 +142,30 @@ class DashboardApp(App):
     async def action_show_services(self) -> None:
         """Show services statistics modal (triggered by 's' key)."""
         await self.push_screen(ServicesModal())
+
+    async def action_detach(self) -> None:
+        """Detach from tmux session, fallback to quit if fails."""
+        # Check if we're in a tmux session
+        if not os.environ.get("TMUX"):
+            # Not in tmux, just quit normally
+            self.exit()
+            return
+
+        # Attempt to detach
+        try:
+            subprocess.run(  # nosec B603 B607
+                ["tmux", "detach-client"], check=True, capture_output=True, timeout=2
+            )
+            # Success - we're detached, but method continues
+            # The detach will end this client session
+        except (
+            subprocess.CalledProcessError,
+            subprocess.TimeoutExpired,
+            FileNotFoundError,
+            Exception,
+        ):
+            # Detach failed - fallback to quit
+            self.exit()
 
 
 def run_dashboard(config: DashboardConfig | None = None) -> None:
