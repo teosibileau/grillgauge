@@ -127,8 +127,6 @@ ahoy provision status
 ahoy provision freeze
 ```
 
-#### Configuration
-
 ### Monitoring on Raspberry Pi
 
 ```bash
