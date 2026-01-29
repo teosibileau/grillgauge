@@ -24,6 +24,7 @@
   notify:
     - restart bluetooth-agent
     - restart grillgauge
+  tags: [source]
 
 - name: Copy Python requirements file
   copy:
@@ -33,6 +34,7 @@
     group: "{{ ansible_user | default('root') }}"
   loop:
     - requirements.txt
+  tags: [source]
 
 - name: Create virtual environment for grillgauge
   command: python3 -m venv /opt/grillgauge/venv
