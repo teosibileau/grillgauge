@@ -1,0 +1,9 @@
+#!/bin/bash
+# GrillGauge Dashboard Attach Script
+# Attaches to existing tmux dashboard session
+
+export COLORTERM=truecolor
+export TERM=xterm-256color
+
+# Attach to dashboard session
+tmux attach-session -t dashboard

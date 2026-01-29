@@ -10,3 +10,9 @@
     name: bluetooth-agent
     state: restarted
     daemon_reload: yes
+
+- name: restart dashboard
+  systemd:
+    name: dashboard
+    state: restarted
+    daemon_reload: yes
