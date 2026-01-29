@@ -29,6 +29,7 @@
         - bluetooth
         - bluetooth-agent
         - grillgauge
+        - dashboard
         - prometheus
         - prometheus-node-exporter
         - prometheus-process-exporter
@@ -40,6 +41,7 @@
         - bluetooth
         - bluetooth-agent
         - grillgauge
+        - dashboard
         - prometheus
         - prometheus-node-exporter
         - prometheus-process-exporter

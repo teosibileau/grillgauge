@@ -1,6 +1,6 @@
 """Integration tests for the GrillGauge dashboard application."""
 
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 import pytest
 
@@ -137,3 +137,88 @@ class TestDashboardApp:
         # Check that the expected container and grid IDs are used
         assert 'Container(id="dashboard-container")' in source
         assert 'Grid(id="dashboard-grid")' in source
+
+    @pytest.mark.asyncio
+    async def test_action_detach_method_exists(self, config):
+        """Test that the action_detach method exists and is callable."""
+        app = DashboardApp(config=config)
+
+        assert hasattr(app, "action_detach")
+        assert callable(app.action_detach)
+
+    @pytest.mark.asyncio
+    async def test_action_detach_not_in_tmux_calls_exit(self, config):
+        """Test that action_detach calls exit when not in tmux."""
+        app = DashboardApp(config=config)
+
+        # Mock TMUX environment variable as not set
+        with (
+            patch.dict("os.environ", {}, clear=True),
+            patch.object(app, "exit") as mock_exit,
+        ):
+            await app.action_detach()
+
+            # Should call exit, not try to run tmux command
+            mock_exit.assert_called_once()
+
+    @pytest.mark.asyncio
+    async def test_action_detach_in_tmux_successful_detach(self, config):
+        """Test that action_detach successfully detaches when in tmux."""
+        app = DashboardApp(config=config)
+
+        # Mock TMUX environment variable as set
+        with (
+            patch.dict("os.environ", {"TMUX": "session"}),
+            patch("subprocess.run") as mock_run,
+        ):
+            # Mock successful subprocess.run
+            mock_run.return_value = MagicMock()
+
+            await app.action_detach()
+
+            # Should call subprocess.run with detach-client
+            mock_run.assert_called_once_with(
+                ["tmux", "detach-client"],
+                check=True,
+                capture_output=True,
+                timeout=2,
+            )
+
+    @pytest.mark.asyncio
+    async def test_action_detach_in_tmux_detach_fails_calls_exit(self, config):
+        """Test that action_detach calls exit when tmux detach fails."""
+        app = DashboardApp(config=config)
+
+        # Mock TMUX environment variable as set
+        with (
+            patch.dict("os.environ", {"TMUX": "session"}),
+            patch("subprocess.run", side_effect=Exception("Detach failed")),
+            patch.object(app, "exit") as mock_exit,
+        ):
+            await app.action_detach()
+
+            # Should call exit on failure
+            mock_exit.assert_called_once()
+
+    @pytest.mark.asyncio
+    async def test_action_detach_handles_multiple_failure_types(self, config):
+        """Test that action_detach handles various failure types gracefully."""
+        app = DashboardApp(config=config)
+
+        failure_cases = [
+            FileNotFoundError("tmux not found"),
+            TimeoutError("Command timed out"),
+            Exception("Generic error"),
+        ]
+
+        for failure in failure_cases:
+            with (
+                patch.dict("os.environ", {"TMUX": "session"}),
+                patch("subprocess.run", side_effect=failure),
+                patch.object(app, "exit") as mock_exit,
+            ):
+                await app.action_detach()
+
+                # Should call exit on any failure
+                mock_exit.assert_called_once()
+                mock_exit.reset_mock()

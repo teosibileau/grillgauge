@@ -1,0 +1,23 @@
+#!/bin/bash
+# GrillGauge Dashboard Startup Script
+# Starts dashboard in tmux session with kiosk configuration
+
+export COLORTERM=truecolor
+export TERM=xterm-256color
+
+# Kill existing session
+tmux kill-session -t dashboard 2>/dev/null || true
+
+# Start dashboard in tmux
+cd /opt/grillgauge
+tmux new-session -d -s dashboard '/opt/grillgauge/venv/bin/python -m src.grillgauge.cli dashboard'
+
+# Configure tmux for invisible kiosk mode
+tmux set-option -t dashboard status off
+tmux set-option -t dashboard status-style bg=default
+tmux set-option -t dashboard pane-border-lines empty
+tmux set-option -t dashboard pane-border-status off
+tmux set-option -t dashboard set-titles off
+tmux set-option -t dashboard set-titles-string ""
+tmux set-option -t dashboard window-status-format ""
+tmux set-option -t dashboard window-status-current-format ""

@@ -24,6 +24,7 @@
   notify:
     - restart bluetooth-agent
     - restart grillgauge
+  tags: [source]
 
 - name: Copy Python requirements file
   copy:
@@ -33,6 +34,7 @@
     group: "{{ ansible_user | default('root') }}"
   loop:
     - requirements.txt
+  tags: [source]
 
 - name: Create virtual environment for grillgauge
   command: python3 -m venv /opt/grillgauge/venv
@@ -87,16 +89,78 @@
     dest: /etc/systemd/system/grillgauge.service
   notify: restart grillgauge
 
-- name: Create grillgauge-dashboard wrapper script
-  template:
-    src: grillgauge-dashboard.sh.j2
-    dest: /usr/local/bin/grillgauge-dashboard
-    mode: '0755'
-    owner: root
-    group: root
+- name: Install tmux for session management
+  apt:
+    name: tmux
+    state: present
+  when: ansible_facts['os_family'] == "Debian"
+  tags: [dashboard]
 
-- name: Cleanup temporary files
-  file:
-    path: /tmp/grillgauge
-    state: absent
-  ignore_errors: true
+- name: Create dashboard startup script
+  template:
+    src: start-dashboard.sh.j2
+    dest: /usr/local/bin/start-dashboard.sh
+    mode: '0755'
+    owner: "{{ ansible_user | default('root') }}"
+    group: "{{ ansible_user | default('root') }}"
+  tags: [dashboard]
+
+- name: Create dashboard attach script
+  template:
+    src: attach-dashboard.sh.j2
+    dest: /usr/local/bin/attach-dashboard.sh
+    mode: '0755'
+    owner: "{{ ansible_user | default('root') }}"
+    group: "{{ ansible_user | default('root') }}"
+  tags: [dashboard]
+
+- name: Install tmux dashboard systemd service
+  template:
+    src: dashboard.service.j2
+    dest: /etc/systemd/system/dashboard.service
+  notify: restart dashboard
+  tags: [dashboard]
+
+- name: Enable and start dashboard service
+  systemd:
+    name: dashboard
+    enabled: yes
+    state: started
+    daemon_reload: yes
+  when: ansible_facts['os_family'] == "Debian"
+  tags: [dashboard]
+
+- name: Check dashboard service status
+  command: systemctl status dashboard --no-pager
+  register: dashboard_status
+  changed_when: false
+  failed_when: false
+  when: ansible_facts['os_family'] == "Debian"
+  tags: [dashboard]
+
+- name: Display dashboard service status
+  debug:
+    msg: "{{ dashboard_status.stdout_lines }}"
+  when:
+    - ansible_facts['os_family'] == "Debian"
+    - dashboard_status.stdout_lines is defined
+  tags: [dashboard]
+
+- name: Configure user dashboard autologin
+  blockinfile:
+    path: "/home/{{ ansible_user | default('pi') }}/.bashrc"
+    block: |
+      # GrillGauge Dashboard Auto-Attach
+      # Automatically attach to dashboard on console login (not SSH)
+      if [[ -z $SSH_CLIENT && -z $SSH_TTY ]]; then
+        /usr/local/bin/attach-dashboard.sh
+      fi
+    marker: "# {mark} GRILLGAUGE DASHBOARD AUTO-ATTACH"
+    create: yes
+    owner: "{{ ansible_user | default('pi') }}"
+    group: "{{ ansible_user | default('pi') }}"
+    mode: '0644'
+  when:
+    - ansible_facts['os_family'] == "Debian"
+    - system_autologin_user | length > 0
+  tags: [dashboard]

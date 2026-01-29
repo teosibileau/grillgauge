@@ -1,0 +1,17 @@
+[Unit]
+Description=GrillGauge Dashboard in invisible tmux session
+After=network.target prometheus.service
+Wants=prometheus.service
+Requires=prometheus.service
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+User={{ ansible_user | default('root') }}
+ExecStart=/usr/local/bin/start-dashboard.sh
+ExecStop=/usr/bin/tmux kill-session -t dashboard
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target
