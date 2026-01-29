@@ -5,3 +5,10 @@ commands:
     usage: Ansible provisioning commands
     imports:
       - .ahoy/provision.ahoy.yml
+  render-diagram:
+    usage: Render architecture diagram PNG
+    cmd: |
+      echo "🎨 Rendering architecture diagram..."
+      cd .docs && poetry run python architecture.py
+      mv architecture.png ../.assets/
+      echo "✅ Diagram saved to .assets/architecture.png"
